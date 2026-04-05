@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import String, Float, Enum, DateTime, Boolean, Integer, JSON
+from sqlalchemy import String, Float, DateTime, Boolean, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -27,7 +27,7 @@ class Agent(Base):
     strategy_version: Mapped[int] = mapped_column(Integer, default=1)
 
     status: Mapped[AgentStatus] = mapped_column(
-        Enum(AgentStatus), default=AgentStatus.IDLE
+        String(20), default=AgentStatus.IDLE
     )
     is_paper: Mapped[bool] = mapped_column(Boolean, default=True)
 

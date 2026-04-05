@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.core.database import async_session
 from app.core.config import settings
-from app.core.redis import redis_client
+import app.core.redis as _redis_mod
 from app.models.agent import Agent, AgentStatus
 from app.models.trade import Trade, TradeSide
 from app.models.log import AgentLog, LogLevel
@@ -55,7 +55,7 @@ class AgentManager:
                         break
 
                     # Get latest price from Redis
-                    price_data = await redis_client.get(f"price:{agent.symbol}")
+                    price_data = await _redis_mod.redis_client.get(f"price:{agent.symbol}")
                     if not price_data:
                         await asyncio.sleep(2)
                         continue
@@ -198,7 +198,7 @@ class AgentManager:
             db.add(log)
             await db.commit()
 
-        await redis_client.publish("agent_updates", json.dumps({
+        await _redis_mod.redis_client.publish("agent_updates", json.dumps({
             "type": "log",
             "agent_id": agent_id,
             "level": level.value,
@@ -207,7 +207,7 @@ class AgentManager:
         }))
 
     async def _broadcast_update(self, agent: Agent, current_price: float):
-        await redis_client.publish("agent_updates", json.dumps({
+        await _redis_mod.redis_client.publish("agent_updates", json.dumps({
             "type": "metrics",
             "agent_id": agent.id,
             "status": agent.status.value,

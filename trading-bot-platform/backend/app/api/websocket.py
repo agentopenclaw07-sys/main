@@ -3,7 +3,7 @@ import json
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.core.redis import redis_client
+import app.core.redis as _redis_mod
 
 router = APIRouter()
 
@@ -75,7 +75,7 @@ async def dashboard_ws(websocket: WebSocket):
 
 async def redis_listener():
     """Subscribe to Redis pub/sub and forward to WebSocket clients."""
-    pubsub = redis_client.pubsub()
+    pubsub = _redis_mod.redis_client.pubsub()
     await pubsub.subscribe("agent_updates", "price_updates")
     async for message in pubsub.listen():
         if message["type"] != "message":

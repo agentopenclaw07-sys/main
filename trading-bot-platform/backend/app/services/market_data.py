@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 
 from app.core.database import async_session
-from app.core.redis import redis_client
+import app.core.redis as _redis_mod
 from app.models.price import PriceCandle
 
 
@@ -98,10 +98,10 @@ async def price_feed_loop(interval: int = 5):
             tick = _next_price(symbol)
 
             # Publish to Redis for WebSocket consumers
-            await redis_client.publish("price_updates", json.dumps(tick))
+            await _redis_mod.redis_client.publish("price_updates", json.dumps(tick))
 
             # Store latest price for agent workers
-            await redis_client.set(f"price:{symbol}", json.dumps(tick), ex=30)
+            await _redis_mod.redis_client.set(f"price:{symbol}", json.dumps(tick), ex=30)
 
         await asyncio.sleep(interval)
 

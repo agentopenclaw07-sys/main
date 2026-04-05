@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import init_db
+from app.core.redis import init_redis
 from app.api.agents import router as agents_router
 from app.api.market import router as market_router
 from app.api.risk import router as risk_router
@@ -18,6 +19,7 @@ from app.strategies.registry import list_strategies
 async def lifespan(app: FastAPI):
     # Startup
     await init_db()
+    await init_redis()
 
     # Start background tasks
     price_task = asyncio.create_task(price_feed_loop(interval=5))
