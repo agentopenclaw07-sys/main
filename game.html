@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>EVOLVE: Autonomous Empire</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--panel:#111827;--card:#1e293b;--border:#334155;--text:#e2e8f0;--dim:#94a3b8;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--red:#ef4444;--gold:#f59e0b;--orange:#f97316}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;-webkit-tap-highlight-color:transparent;user-select:none}
+#app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;position:relative}
+.top-bar{padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.top-bar .res{text-align:right}
+.top-bar .res .amount{font-size:20px;font-weight:700;color:var(--gold)}
+.top-bar .res .per-sec{font-size:11px;color:var(--green)}
+.top-bar .phase-badge{font-size:10px;padding:3px 8px;border-radius:10px;background:var(--accent2);color:#fff;text-transform:uppercase;letter-spacing:0.5px}
+.screen{flex:1;overflow-y:auto;padding:12px;display:none;-webkit-overflow-scrolling:touch}
+.screen.active{display:block}
+.tab-bar{display:flex;background:var(--panel);border-top:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:60px;padding:8px 4px;text-align:center;font-size:10px;color:var(--dim);border:none;background:none;cursor:pointer;transition:color 0.2s}
+.tab.active{color:var(--accent);border-top:2px solid var(--accent)}
+.tab.locked{opacity:0.3;pointer-events:none}
+.tab-icon{font-size:18px;display:block;margin-bottom:2px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.card-title{font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.card-sub{font-size:12px;color:var(--dim)}
+.btn{padding:8px 16px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;transition:all 0.15s}
+.btn:active{transform:scale(0.96)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:disabled{background:#1e3a5f;color:#4a6fa5;cursor:default}
+.btn-green{background:var(--green);color:#000}
+.btn-gold{background:var(--gold);color:#000}
+.btn-red{background:var(--red);color:#fff}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-block{width:100%;display:block}
+.row{display:flex;gap:8px;align-items:center}
+.row-between{display:flex;justify-content:space-between;align-items:center}
+.flex-1{flex:1}
+.mb-2{margin-bottom:8px}
+.mb-1{margin-bottom:4px}
+.text-dim{color:var(--dim)}
+.text-green{color:var(--green)}
+.text-gold{color:var(--gold)}
+.text-red{color:var(--red)}
+.text-sm{font-size:12px}
+.text-xs{font-size:10px}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:4px 0}
+.progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s}
+#tap-area{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0}
+#tap-btn{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#60a5fa,#2563eb,#1d4ed8);border:4px solid #93c5fd;color:#fff;font-size:18px;font-weight:700;cursor:pointer;transition:transform 0.1s;box-shadow:0 0 30px rgba(59,130,246,0.3)}
+#tap-btn:active{transform:scale(0.93);box-shadow:0 0 50px rgba(59,130,246,0.6)}
+.tap-feedback{position:absolute;pointer-events:none;font-weight:700;color:var(--gold);font-size:20px;animation:floatUp 0.8s forwards;z-index:100}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-60px)}}
+.gen-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.gen-row:last-child{border-bottom:none}
+.gen-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-right:10px;flex-shrink:0}
+.gen-info{flex:1;min-width:0}
+.gen-name{font-weight:600;font-size:13px}
+.gen-stats{font-size:11px;color:var(--dim)}
+.gen-cost{font-size:12px;margin-right:8px}
+.worker-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px}
+.rule-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px}
+.rule-card .condition{color:var(--accent);font-size:12px}
+.rule-card .action{color:var(--green);font-size:12px}
+.agent-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px}
+.stat-bar{display:flex;align-items:center;gap:4px;font-size:11px;margin:2px 0}
+.stat-fill{height:8px;border-radius:4px;background:var(--accent2)}
+.market-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.market-row:last-child{border-bottom:none}
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--accent2);color:#fff;padding:10px 20px;border-radius:8px;font-weight:600;z-index:1000;animation:toastIn 0.3s,toastOut 0.3s 2s forwards;pointer-events:none}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(-50%) translateY(-20px)}}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:900;display:none}
+.modal-overlay.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:360px;width:90%}
+.modal h3{margin-bottom:12px}
+select,input[type=number]{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:13px;width:100%}
+.boost-active{background:rgba(249,115,22,0.15);border:1px solid var(--orange);border-radius:8px;padding:6px 10px;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between}
+.section-header{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin:12px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.achievement-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.achievement-row:last-child{border-bottom:none}
+.ach-icon{font-size:24px;margin-right:10px}
+.ach-info{flex:1}
+.ach-claimed{opacity:0.5}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top-bar">
+    <div>
+      <div style="font-weight:700;font-size:15px">EVOLVE</div>
+      <span class="phase-badge" id="phase-badge">Incremental</span>
+    </div>
+    <div class="res">
+      <div class="amount" id="top-energy">0</div>
+      <div class="per-sec" id="top-eps">+0/s</div>
+    </div>
+  </div>
+
+  <!-- MAIN SCREEN -->
+  <div class="screen active" id="screen-main">
+    <div id="boost-bar"></div>
+    <div id="tap-area">
+      <div id="tap-btn">TAP</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--dim)">+<span id="tap-power">1</span> per tap</div>
+    </div>
+    <div class="section-header">Generators</div>
+    <div id="gen-list-main"></div>
+  </div>
+
+  <!-- GENERATORS SCREEN -->
+  <div class="screen" id="screen-generators">
+    <div class="row-between mb-2">
+      <div class="section-header" style="margin:0;border:none">Generators</div>
+      <div class="row" style="gap:4px">
+        <button class="btn btn-sm btn-primary" onclick="G.buyMode=1;G.refreshGenerators()">x1</button>
+        <button class="btn btn-sm" onclick="G.buyMode=10;G.refreshGenerators()" style="background:var(--card);color:var(--text)">x10</button>
+        <button class="btn btn-sm" onclick="G.buyMode=100;G.refreshGenerators()" style="background:var(--card);color:var(--text)">x100</button>
+      </div>
+    </div>
+    <div id="gen-list-full"></div>
+    <div class="section-header">Upgrades</div>
+    <div id="upgrade-list"></div>
+  </div>
+
+  <!-- AUTOMATION SCREEN -->
+  <div class="screen" id="screen-automation">
+    <div class="row-between mb-2">
+      <div class="section-header" style="margin:0;border:none">Workers (<span id="worker-count">0</span>/<span id="worker-max">3</span>)</div>
+      <button class="btn btn-sm btn-green" onclick="G.hireWorker()">Hire (<span id="hire-cost">100</span>)</button>
+    </div>
+    <div id="worker-list"></div>
+    <div class="section-header">Auto-Buy</div>
+    <div id="autobuy-list"></div>
+  </div>
+
+  <!-- LOGIC SCREEN -->
+  <div class="screen" id="screen-logic">
+    <div class="row-between mb-2">
+      <div class="section-header" style="margin:0;border:none">Rules (<span id="rule-count">0</span>/<span id="rule-max">20</span>)</div>
+      <button class="btn btn-sm btn-primary" onclick="G.openRuleEditor()">+ New Rule</button>
+    </div>
+    <div id="rule-templates" class="mb-2">
+      <div class="text-xs text-dim mb-1">Quick Templates:</div>
+      <div class="row" style="flex-wrap:wrap;gap:4px">
+        <button class="btn btn-sm" style="background:var(--card);color:var(--accent);font-size:10px" onclick="G.addTemplateRule('autosell')">Auto-Sell Energy</button>
+        <button class="btn btn-sm" style="background:var(--card);color:var(--accent);font-size:10px" onclick="G.addTemplateRule('autobuy')">Auto-Buy Best Gen</button>
+        <button class="btn btn-sm" style="background:var(--card);color:var(--accent);font-size:10px" onclick="G.addTemplateRule('restock')">Restock Data</button>
+      </div>
+    </div>
+    <div id="rule-list"></div>
+  </div>
+
+  <!-- AI SCREEN -->
+  <div class="screen" id="screen-ai">
+    <div class="row-between mb-2">
+      <div class="section-header" style="margin:0;border:none">AI Agents (<span id="agent-count">0</span>/<span id="agent-max">3</span>)</div>
+      <button class="btn btn-sm btn-primary" onclick="G.deployAgent()">+ Deploy</button>
+    </div>
+    <div id="agent-list"></div>
+  </div>
+
+  <!-- SIMULATION SCREEN -->
+  <div class="screen" id="screen-sim">
+    <div class="card">
+      <div class="card-title">Population</div>
+      <div class="row-between text-sm">
+        <span>Citizens: <span id="pop-current" class="text-gold">100</span>/<span id="pop-cap">1000</span></span>
+        <span>Workers: <span id="pop-workers" class="text-green">50</span></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="pop-bar" style="width:10%"></div></div>
+    </div>
+    <div class="section-header">Market</div>
+    <div id="market-list"></div>
+    <div class="section-header">Businesses</div>
+    <div class="row-between mb-2">
+      <span class="text-xs text-dim"><span id="biz-count">0</span> active</span>
+      <button class="btn btn-sm btn-green" onclick="G.openBizBuilder()">+ Build</button>
+    </div>
+    <div id="biz-list"></div>
+  </div>
+
+  <!-- PRESTIGE SCREEN -->
+  <div class="screen" id="screen-prestige">
+    <div class="card" style="text-align:center;border-color:var(--accent2)">
+      <div style="font-size:12px;color:var(--dim)">Prestige Points</div>
+      <div style="font-size:28px;font-weight:700;color:var(--accent2)" id="pp-current">0</div>
+      <div style="margin:8px 0">
+        <span class="text-sm">Prestige now for: </span>
+        <span class="text-gold" style="font-weight:700" id="pp-reward">0</span><span class="text-sm"> PP</span>
+      </div>
+      <div class="text-xs text-dim mb-2">Resets energy, generators & upgrades. Keeps PP & prestige upgrades.</div>
+      <button class="btn btn-gold btn-block" onclick="G.doPrestige()" id="prestige-btn">PRESTIGE</button>
+      <div class="text-xs text-dim" style="margin-top:4px">Multiplier: <span id="prestige-mult">1.00</span>x</div>
+    </div>
+    <div class="section-header">Prestige Upgrades</div>
+    <div id="prestige-upgrades"></div>
+    <div class="card" style="margin-top:12px;border-color:var(--gold)" id="ascension-card">
+      <div class="card-title">Ascension <span class="text-xs text-dim">(requires 10 prestiges)</span></div>
+      <div class="row-between">
+        <span class="text-sm">Tokens: <span id="asc-tokens" class="text-gold">0</span></span>
+        <button class="btn btn-sm btn-gold" onclick="G.doAscension()" id="asc-btn" disabled>Ascend</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOOSTS / SHOP SCREEN -->
+  <div class="screen" id="screen-shop">
+    <div class="section-header">Active Boosts</div>
+    <div id="active-boosts"><div class="text-sm text-dim">No active boosts</div></div>
+    <div class="section-header">Free Boosts (Simulated Ads)</div>
+    <div id="ad-boosts"></div>
+    <div class="section-header">Achievements</div>
+    <div id="achievement-list"></div>
+    <div class="section-header">Daily Reward</div>
+    <div id="daily-reward"></div>
+    <div class="section-header">Save / Load</div>
+    <div class="row" style="gap:8px;margin-top:4px">
+      <button class="btn btn-sm btn-primary" onclick="G.save()">Save</button>
+      <button class="btn btn-sm" style="background:var(--card);color:var(--text)" onclick="G.exportSave()">Export</button>
+      <button class="btn btn-sm" style="background:var(--card);color:var(--text)" onclick="G.importSave()">Import</button>
+      <button class="btn btn-sm btn-red" onclick="if(confirm('Delete ALL progress?'))G.hardReset()">Reset</button>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar" id="tab-bar">
+    <div class="tab active" data-screen="main" onclick="G.switchTab('main')"><span class="tab-icon">&#9889;</span>Main</div>
+    <div class="tab" data-screen="generators" onclick="G.switchTab('generators')"><span class="tab-icon">&#9881;</span>Gens</div>
+    <div class="tab locked" data-screen="automation" data-phase="1" onclick="G.switchTab('automation')"><span class="tab-icon">&#9875;</span>Auto</div>
+    <div class="tab locked" data-screen="logic" data-phase="2" onclick="G.switchTab('logic')"><span class="tab-icon">&#128268;</span>Logic</div>
+    <div class="tab locked" data-screen="ai" data-phase="3" onclick="G.switchTab('ai')"><span class="tab-icon">&#129302;</span>AI</div>
+    <div class="tab locked" data-screen="sim" data-phase="4" onclick="G.switchTab('sim')"><span class="tab-icon">&#127758;</span>Sim</div>
+    <div class="tab locked" data-screen="prestige" data-phase="5" onclick="G.switchTab('prestige')"><span class="tab-icon">&#11088;</span>Meta</div>
+    <div class="tab" data-screen="shop" onclick="G.switchTab('shop')"><span class="tab-icon">&#127873;</span>More</div>
+  </div>
+</div>
+
+<!-- RULE EDITOR MODAL -->
+<div class="modal-overlay" id="rule-modal">
+  <div class="modal">
+    <h3>Create Rule</h3>
+    <div class="mb-2">
+      <label class="text-xs text-dim">Rule Name</label>
+      <input type="text" id="rule-name" value="My Rule" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;width:100%">
+    </div>
+    <div class="mb-2">
+      <label class="text-xs text-dim">IF (Condition)</label>
+      <select id="rule-cond-type"><option value="resAbove">Resource Above</option><option value="resBelow">Resource Below</option><option value="prodAbove">Production Above</option><option value="prodBelow">Production Below</option><option value="genAbove">Generator Count Above</option><option value="genBelow">Generator Count Below</option></select>
+      <div class="row" style="margin-top:4px">
+        <select id="rule-cond-target" class="flex-1"><option value="energy">Energy</option><option value="data">Data</option><option value="credits">Credits</option></select>
+        <input type="number" id="rule-cond-value" value="1000" style="width:100px">
+      </div>
+    </div>
+    <div class="mb-2">
+      <label class="text-xs text-dim">THEN (Action)</label>
+      <select id="rule-act-type"><option value="buyGen">Buy Generator</option><option value="sellRes">Sell Resource</option></select>
+      <div class="row" style="margin-top:4px">
+        <select id="rule-act-target" class="flex-1" ><option value="micro_gen">Micro Gen</option><option value="power_cell">Power Cell</option><option value="reactor">Reactor</option><option value="fusion_core">Fusion Core</option><option value="quantum_array">Quantum Array</option></select>
+        <input type="number" id="rule-act-value" value="1" style="width:80px">
+      </div>
+    </div>
+    <div class="row" style="gap:8px;margin-top:12px">
+      <button class="btn btn-primary flex-1" onclick="G.saveRule()">Create</button>
+      <button class="btn flex-1" style="background:var(--card);color:var(--text)" onclick="G.closeRuleEditor()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUSINESS BUILDER MODAL -->
+<div class="modal-overlay" id="biz-modal">
+  <div class="modal">
+    <h3>Build Business</h3>
+    <div class="mb-2">
+      <label class="text-xs text-dim">Type</label>
+      <select id="biz-type"><option value="mine">Mine (produces Energy)</option><option value="lab">Lab (produces Data)</option><option value="factory">Factory (Energy->Credits)</option><option value="research">Research Center (Data->Research)</option></select>
+    </div>
+    <div class="text-sm text-dim mb-2">Cost: <span id="biz-cost" class="text-gold">1000</span> Credits</div>
+    <div class="row" style="gap:8px;margin-top:12px">
+      <button class="btn btn-green flex-1" onclick="G.buildBusiness()">Build</button>
+      <button class="btn flex-1" style="background:var(--card);color:var(--text)" onclick="document.getElementById('biz-modal').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// EVOLVE: Autonomous Empire — Complete Browser Build
+// All game systems in one file. Open in any browser to play.
+// ═══════════════════════════════════════════════════════════════
+
+const G = {
+  // ─── STATE ─────────────────────────────────────────────────
+  phase: 0, // 0=Incremental,1=Automation,2=Logic,3=AI,4=Simulation,5=Meta
+  phaseNames: ['Incremental','Automation','Logic','AI','Simulation','Meta'],
+  gameTime: 0,
+  tickCount: 0,
+  buyMode: 1,
+  activeTab: 'main',
+  totalTaps: 0,
+
+  resources: {
+    energy:  { amount:0, totalEarned:0, perSec:0, capacity:0, name:'Energy' },
+    data:    { amount:0, totalEarned:0, perSec:0, capacity:1000, name:'Data' },
+    credits: { amount:0, totalEarned:0, perSec:0, capacity:0, name:'Credits' },
+    research:{ amount:0, totalEarned:0, perSec:0, capacity:0, name:'Research' },
+  },
+
+  generators: [
+    { id:'clicker', name:'Manual Tap', tier:0, res:'energy', baseProd:1, baseCost:0, growth:1, owned:1, mult:1, icon:'👆' },
+    { id:'micro_gen', name:'Micro Generator', tier:1, res:'energy', baseProd:1, baseCost:10, growth:1.15, owned:0, mult:1, icon:'🔋' },
+    { id:'power_cell', name:'Power Cell', tier:2, res:'energy', baseProd:8, baseCost:100, growth:1.15, owned:0, mult:1, icon:'⚡' },
+    { id:'reactor', name:'Reactor', tier:3, res:'energy', baseProd:47, baseCost:1000, growth:1.15, owned:0, mult:1, icon:'☢️' },
+    { id:'fusion_core', name:'Fusion Core', tier:4, res:'energy', baseProd:260, baseCost:12000, growth:1.15, owned:0, mult:1, icon:'💫' },
+    { id:'quantum_array', name:'Quantum Array', tier:5, res:'energy', baseProd:1400, baseCost:130000, growth:1.15, owned:0, mult:1, icon:'🔮' },
+    { id:'dyson_collector', name:'Dyson Collector', tier:6, res:'energy', baseProd:7800, baseCost:1400000, growth:1.15, owned:0, mult:1, icon:'🌞' },
+    { id:'singularity', name:'Singularity Engine', tier:7, res:'energy', baseProd:44000, baseCost:20000000, growth:1.15, owned:0, mult:1, icon:'🕳️' },
+  ],
+
+  upgrades: [
+    { id:'click_power', name:'Tap Power', desc:'+100% tap', target:'clicker', costRes:'energy', baseCost:50, growth:2.0, level:0, max:50, effect:1.0 },
+    { id:'micro_boost', name:'Micro Boost', desc:'+50% Micro Gen', target:'micro_gen', costRes:'energy', baseCost:100, growth:1.8, level:0, max:100, effect:0.5 },
+    { id:'cell_boost', name:'Cell Boost', desc:'+50% Power Cell', target:'power_cell', costRes:'energy', baseCost:1000, growth:1.8, level:0, max:100, effect:0.5 },
+    { id:'reactor_boost', name:'Reactor Boost', desc:'+50% Reactor', target:'reactor', costRes:'energy', baseCost:10000, growth:1.8, level:0, max:100, effect:0.5 },
+    { id:'data_storage', name:'Data Storage', desc:'+500 Data cap', target:'', costRes:'energy', baseCost:500, growth:1.5, level:0, max:200, effect:0 },
+  ],
+
+  // Automation
+  workers: [],
+  maxWorkers: 3,
+  autoBuy: [],
+  taskTypes: ['energy','data','credits','research'],
+
+  // Logic
+  rules: [],
+  maxRules: 20,
+  ruleTimer: 0,
+
+  // AI
+  agents: [],
+  maxAgents: 3,
+
+  // Simulation
+  businesses: [],
+  markets: {
+    energy:  { base:1, price:1, supply:0, demand:0, vol:0.2 },
+    data:    { base:5, price:5, supply:0, demand:0, vol:0.3 },
+    credits: { base:1, price:1, supply:0, demand:0, vol:0.05 },
+    research:{ base:20, price:20, supply:0, demand:0, vol:0.4 },
+  },
+  population: { current:100, capacity:1000, growth:0.001, happiness:0.8, available:50, employed:0 },
+
+  // Meta / Prestige
+  prestigePoints: 0,
+  lifetimePP: 0,
+  prestigeCount: 0,
+  ascensionTokens: 0,
+  ascensionCount: 0,
+  ascensionMult: 1,
+  prestigeUpgrades: [
+    { id:'global_prod', name:'Empire Output', desc:'+25% all production', cost:5, level:0, max:100, effect:0.25, type:'globalMult' },
+    { id:'click_mult', name:'Neural Tap', desc:'+50% tap power', cost:3, level:0, max:50, effect:0.5, type:'clickMult' },
+    { id:'starting_e', name:'Seed Capital', desc:'Start with 10^(lv+2) energy', cost:10, level:0, max:20, effect:1, type:'startEnergy' },
+    { id:'extra_workers', name:'Workforce+', desc:'+2 max workers', cost:8, level:0, max:25, effect:2, type:'maxWorkers' },
+    { id:'extra_rules', name:'Logic+', desc:'+5 max rules', cost:8, level:0, max:20, effect:5, type:'maxRules' },
+    { id:'extra_agents', name:'AI+', desc:'+1 max AI agent', cost:15, level:0, max:10, effect:1, type:'maxAgents' },
+  ],
+
+  // Boosts
+  boosts: [],
+  prodBoostMult: 1,
+  clickBoostMult: 1,
+
+  // Daily / Achievements
+  dailyRewards: [
+    { day:1, res:'energy', amount:100 },{ day:2, res:'energy', amount:250 },
+    { day:3, res:'data', amount:50 },{ day:4, res:'energy', amount:500 },
+    { day:5, res:'credits', amount:100 },{ day:6, res:'energy', amount:1000 },
+    { day:7, res:'energy', amount:5000, milestone:true },
+  ],
+  dailyState: { currentDay:0, lastClaim:0, claimedToday:false },
+  achievements: [
+    { id:'first_tap', name:'First Steps', desc:'Tap 1 time', track:'taps', target:1, current:0, done:false, claimed:false, res:'energy', reward:10 },
+    { id:'tap_100', name:'Tap Happy', desc:'Tap 100 times', track:'taps', target:100, current:0, done:false, claimed:false, res:'energy', reward:500 },
+    { id:'tap_10k', name:'Tap Master', desc:'Tap 10,000 times', track:'taps', target:10000, current:0, done:false, claimed:false, res:'energy', reward:50000 },
+    { id:'e_1k', name:'Power Surge', desc:'Earn 1K Energy total', track:'totalEnergy', target:1000, current:0, done:false, claimed:false, res:'energy', reward:200 },
+    { id:'e_1m', name:'Megawatt', desc:'Earn 1M Energy total', track:'totalEnergy', target:1e6, current:0, done:false, claimed:false, res:'data', reward:1000 },
+    { id:'e_1b', name:'Gigawatt', desc:'Earn 1B Energy total', track:'totalEnergy', target:1e9, current:0, done:false, claimed:false, res:'credits', reward:10000 },
+    { id:'first_gen', name:'Automation Begins', desc:'Buy a generator', track:'gensBought', target:1, current:0, done:false, claimed:false, res:'energy', reward:50 },
+    { id:'first_prestige', name:'Rebirth', desc:'Prestige once', track:'prestiges', target:1, current:0, done:false, claimed:false, res:'energy', reward:5000 },
+  ],
+  stats: { taps:0, totalEnergy:0, gensBought:0, prestiges:0, workersHired:0, rulesCreated:0, agentsDeployed:0 },
+
+  // ─── FORMATTING ──────────────────────────────────────────
+  fmt(v) {
+    if(v<0) return '-'+this.fmt(-v);
+    if(v<1000) return v.toFixed(1);
+    if(v<1e6) return (v/1e3).toFixed(2)+'K';
+    if(v<1e9) return (v/1e6).toFixed(2)+'M';
+    if(v<1e12) return (v/1e9).toFixed(2)+'B';
+    if(v<1e15) return (v/1e12).toFixed(2)+'T';
+    let e=Math.floor(Math.log10(v));
+    return (v/Math.pow(10,e)).toFixed(2)+'e'+e;
+  },
+
+  // ─── COST FORMULAS ───────────────────────────────────────
+  genCost(g, count) {
+    if(count===1) return g.baseCost * Math.pow(g.growth, g.owned);
+    let r=g.growth;
+    return g.baseCost * Math.pow(r, g.owned) * (Math.pow(r, count)-1) / (r-1);
+  },
+  genProd(g) { return g.baseProd * g.owned * g.mult; },
+  upgCost(u) { return u.baseCost * Math.pow(u.growth, u.level); },
+
+  // ─── RESOURCE HELPERS ────────────────────────────────────
+  addRes(id, amt) {
+    let r=this.resources[id]; if(!r)return;
+    r.amount+=amt;
+    if(amt>0) r.totalEarned+=amt;
+    if(r.capacity>0 && r.amount>r.capacity) r.amount=r.capacity;
+    if(r.amount<0) r.amount=0;
+    if(id==='energy') this.stats.totalEnergy=r.totalEarned;
+  },
+  canAfford(id, amt) { return this.resources[id] && this.resources[id].amount>=amt; },
+  spend(id, amt) { if(!this.canAfford(id,amt))return false; this.resources[id].amount-=amt; return true; },
+
+  // ─── CORE TICK ──────────────────────────────────────────
+  tick(dt) {
+    this.gameTime+=dt;
+    this.tickCount++;
+
+    // Production
+    for(let i=1;i<this.generators.length;i++){
+      let g=this.generators[i];
+      if(g.owned<=0)continue;
+      let prod=this.genProd(g)*dt*this.prodBoostMult*this.ascensionMult;
+      this.addRes(g.res, prod);
+    }
+
+    // Recompute per-second
+    let eps=0;
+    for(let i=1;i<this.generators.length;i++){
+      let g=this.generators[i];
+      if(g.owned>0) eps+=this.genProd(g)*this.prodBoostMult*this.ascensionMult;
+    }
+    this.resources.energy.perSec=eps;
+
+    // Phase checks
+    let e=this.resources.energy.totalEarned;
+    if(e>=1000 && this.phase<1) this.setPhase(1);
+    if(e>=1e5  && this.phase<2) this.setPhase(2);
+    if(e>=1e7  && this.phase<3) this.setPhase(3);
+    if(e>=1e9  && this.phase<4) this.setPhase(4);
+    if(e>=1e12 && this.phase<5) this.setPhase(5);
+
+    // Automation
+    if(this.phase>=1) this.tickAutomation(dt);
+    // Logic
+    if(this.phase>=2) this.tickLogic(dt);
+    // AI
+    if(this.phase>=3) this.tickAI(dt);
+    // Simulation
+    if(this.phase>=4) this.tickSimulation(dt);
+    // Boosts
+    this.tickBoosts(dt);
+    // Achievements
+    this.checkAchievements();
+  },
+
+  // ─── TAP ─────────────────────────────────────────────────
+  doTap(e) {
+    let g=this.generators[0];
+    let amt=g.baseProd*g.owned*g.mult*this.clickBoostMult*this.ascensionMult;
+    this.addRes('energy', amt);
+    this.stats.taps++;
+    this.totalTaps++;
+
+    // Floating feedback
+    let el=document.createElement('div');
+    el.className='tap-feedback';
+    el.textContent='+'+this.fmt(amt);
+    let rect=document.getElementById('tap-btn').getBoundingClientRect();
+    el.style.left=(rect.left+rect.width/2-20)+'px';
+    el.style.top=(rect.top-10)+'px';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),800);
+  },
+
+  // ─── BUY GENERATOR ──────────────────────────────────────
+  buyGen(id, count) {
+    count=count||this.buyMode;
+    let g=this.generators.find(x=>x.id===id); if(!g)return;
+    let cost=this.genCost(g, count);
+    if(!this.spend('energy', cost))return;
+    g.owned+=count;
+    this.stats.gensBought+=count;
+  },
+
+  // ─── BUY UPGRADE ─────────────────────────────────────────
+  buyUpgrade(id) {
+    let u=this.upgrades.find(x=>x.id===id); if(!u)return;
+    if(u.level>=u.max)return;
+    let cost=this.upgCost(u);
+    if(!this.spend(u.costRes, cost))return;
+    u.level++;
+    if(u.target){
+      let g=this.generators.find(x=>x.id===u.target);
+      if(g) g.mult+=u.effect;
+    }
+    if(u.id==='data_storage') this.resources.data.capacity+=500;
+  },
+
+  // ─── AUTOMATION ──────────────────────────────────────────
+  tickAutomation(dt) {
+    // Workers produce
+    for(let w of this.workers){
+      if(!w.task)continue;
+      w.hoursWorked+=dt/3600;
+      w.efficiency=Math.max(0.3, 1-0.01*w.hoursWorked);
+      let baseOut={energy:5,data:2,credits:1,research:0.5};
+      let out=(baseOut[w.task]||1)*w.efficiency*(1+w.level*0.2)*dt;
+      this.addRes(w.task, out);
+    }
+    // Auto-buy (every ~1s)
+    if(this.tickCount%10===0){
+      for(let ab of this.autoBuy){
+        if(!ab.enabled)continue;
+        let g=this.generators.find(x=>x.id===ab.genId); if(!g)continue;
+        let cost=this.genCost(g,1);
+        if(this.resources.energy.amount*ab.maxSpend>=cost){
+          this.buyGen(ab.genId, 1);
+        }
+      }
+    }
+  },
+
+  hireWorker() {
+    if(this.workers.length>=this.maxWorkers)return;
+    let cost=100*Math.pow(2, this.workers.length);
+    if(!this.spend('energy', cost))return;
+    this.workers.push({ id:'w'+this.workers.length, task:'energy', efficiency:1, hoursWorked:0, level:1 });
+    this.stats.workersHired++;
+  },
+
+  assignWorker(idx, task) {
+    if(this.workers[idx]){ this.workers[idx].task=task; this.workers[idx].hoursWorked=0; this.workers[idx].efficiency=1; }
+  },
+
+  restWorker(idx) {
+    if(this.workers[idx]){ this.workers[idx].task=''; this.workers[idx].hoursWorked=0; this.workers[idx].efficiency=1; }
+  },
+
+  // ─── LOGIC SYSTEM ──────────────────────────────────────
+  tickLogic(dt) {
+    this.ruleTimer+=dt;
+    if(this.ruleTimer<0.5)return;
+    this.ruleTimer=0;
+    let fired=0;
+    for(let rule of this.rules){
+      if(!rule.enabled || fired>=10)continue;
+      if(this.gameTime-rule.lastFired<rule.cooldown)continue;
+      if(this.evalCondition(rule.cond)){
+        this.execAction(rule.act);
+        rule.lastFired=this.gameTime;
+        fired++;
+      }
+    }
+  },
+
+  evalCondition(c) {
+    let val;
+    if(c.type==='resAbove'||c.type==='resBelow'){ val=this.resources[c.target]?this.resources[c.target].amount:0; }
+    else if(c.type==='prodAbove'||c.type==='prodBelow'){ val=this.resources[c.target]?this.resources[c.target].perSec:0; }
+    else if(c.type==='genAbove'||c.type==='genBelow'){ let g=this.generators.find(x=>x.id===c.target); val=g?g.owned:0; }
+    else return false;
+    if(c.type.includes('Above')) return val>c.value;
+    if(c.type.includes('Below')) return val<c.value;
+    return false;
+  },
+
+  execAction(a) {
+    if(a.type==='buyGen'){ this.buyGen(a.target, Math.max(1,a.value||1)); }
+    else if(a.type==='sellRes'){
+      let amt=Math.min(a.value, this.resources[a.target]?this.resources[a.target].amount:0);
+      if(this.spend(a.target, amt)) this.addRes('credits', amt*0.01);
+    }
+  },
+
+  addTemplateRule(tpl) {
+    if(this.rules.length>=this.maxRules)return;
+    let rule;
+    if(tpl==='autosell') rule={name:'Auto-Sell Energy',cond:{type:'resAbove',target:'energy',value:50000},act:{type:'sellRes',target:'energy',value:10000},enabled:true,cooldown:1,lastFired:0};
+    else if(tpl==='autobuy') rule={name:'Auto-Buy Best',cond:{type:'resAbove',target:'energy',value:1000},act:{type:'buyGen',target:'micro_gen',value:1},enabled:true,cooldown:2,lastFired:0};
+    else if(tpl==='restock') rule={name:'Restock Data',cond:{type:'resBelow',target:'data',value:100},act:{type:'buyGen',target:'micro_gen',value:1},enabled:true,cooldown:5,lastFired:0};
+    if(rule){this.rules.push(rule);this.stats.rulesCreated++;}
+  },
+
+  openRuleEditor() { document.getElementById('rule-modal').classList.add('open'); },
+  closeRuleEditor() { document.getElementById('rule-modal').classList.remove('open'); },
+  saveRule() {
+    if(this.rules.length>=this.maxRules)return;
+    this.rules.push({
+      name: document.getElementById('rule-name').value||'Rule',
+      cond: {
+        type: document.getElementById('rule-cond-type').value,
+        target: document.getElementById('rule-cond-target').value,
+        value: parseFloat(document.getElementById('rule-cond-value').value)||0,
+      },
+      act: {
+        type: document.getElementById('rule-act-type').value,
+        target: document.getElementById('rule-act-target').value,
+        value: parseFloat(document.getElementById('rule-act-value').value)||1,
+      },
+      enabled: true, cooldown: 1, lastFired: 0,
+    });
+    this.stats.rulesCreated++;
+    this.closeRuleEditor();
+  },
+
+  // ─── AI SYSTEM ──────────────────────────────────────────
+  tickAI(dt) {
+    for(let agent of this.agents){
+      if(!agent.active)continue;
+      agent.timer=(agent.timer||0)+dt;
+      if(agent.timer<agent.interval)continue;
+      agent.timer=0;
+      let prevProd=this.resources.energy.perSec;
+      // Score actions and pick best
+      let best=null, bestScore=-Infinity;
+      for(let act of agent.actions){
+        let score=act.weight+act.bias+(Math.random()*0.1);
+        // Context modifiers
+        let e=this.resources.energy.amount, p=this.resources.energy.perSec;
+        if(act.type==='buyBest') score+=agent.growth*0.5+(e>p*30?0.5:0);
+        else if(act.type==='buyCheap') score+=agent.aggression*0.5;
+        else if(act.type==='upgrade') score+=agent.efficiency*0.5;
+        else if(act.type==='sell') score+=agent.stability*0.3;
+        else if(act.type==='save') score+=agent.stability*0.5+(e<p*60?0.5:0);
+        if(score>bestScore){bestScore=score;best=act;}
+      }
+      if(!best)continue;
+      // Execute
+      let success=false;
+      if(best.type==='buyBest'){ success=this.aiBuyBestROI(); }
+      else if(best.type==='buyCheap'){ success=this.aiBuyCheapest(); }
+      else if(best.type==='upgrade'){ success=this.aiBuyUpgrade(); }
+      else if(best.type==='sell'){ let e=this.resources.energy; if(e.amount>e.perSec*120){let s=e.amount*0.1;if(this.spend('energy',s)){this.addRes('credits',s*0.01);success=true;}}}
+      else if(best.type==='save'){ success=true; }
+      best.chosen++;
+      agent.lastAction=best.type;
+      // Learn
+      let newProd=this.resources.energy.perSec;
+      let d=newProd-prevProd;
+      if(d>0) best.bias=Math.min(1,best.bias+0.05);
+      else if(d<0) best.bias=Math.max(-1,best.bias-0.025);
+    }
+  },
+
+  aiBuyBestROI() {
+    let best=null, bestR=0;
+    for(let i=1;i<this.generators.length;i++){
+      let g=this.generators[i], cost=this.genCost(g,1);
+      if(cost>this.resources.energy.amount)continue;
+      let r=(g.baseProd*g.mult)/cost;
+      if(r>bestR){bestR=r;best=g;}
+    }
+    if(best){this.buyGen(best.id,1);return true;}
+    return false;
+  },
+
+  aiBuyCheapest() {
+    let best=null,bestC=Infinity;
+    for(let i=1;i<this.generators.length;i++){
+      let c=this.genCost(this.generators[i],1);
+      if(c<bestC){bestC=c;best=this.generators[i];}
+    }
+    if(best&&this.canAfford('energy',bestC)){this.buyGen(best.id,1);return true;}
+    return false;
+  },
+
+  aiBuyUpgrade() {
+    for(let u of this.upgrades){
+      if(u.level>=u.max)continue;
+      if(this.canAfford(u.costRes, this.upgCost(u))){this.buyUpgrade(u.id);return true;}
+    }
+    return false;
+  },
+
+  deployAgent() {
+    if(this.agents.length>=this.maxAgents)return;
+    let names=['Optimizer','Strategist','Grinder','Analyst','Executor','Builder'];
+    let n=names[this.agents.length%names.length]+'-'+(this.agents.length+1);
+    this.agents.push({
+      id:'ai'+this.agents.length, name:n, active:true, interval:5, timer:0,
+      aggression:0.3+Math.random()*0.4,
+      efficiency:0.3+Math.random()*0.4,
+      growth:0.3+Math.random()*0.4,
+      stability:0.3+Math.random()*0.4,
+      lastAction:'',
+      actions:[
+        {type:'buyBest',weight:1,bias:0,chosen:0},
+        {type:'buyCheap',weight:0.8,bias:0,chosen:0},
+        {type:'upgrade',weight:0.9,bias:0,chosen:0},
+        {type:'sell',weight:0.5,bias:0,chosen:0},
+        {type:'save',weight:0.3,bias:0,chosen:0},
+      ]
+    });
+    this.stats.agentsDeployed++;
+  },
+
+  // ─── SIMULATION ──────────────────────────────────────────
+  tickSimulation(dt) {
+    if(this.tickCount%10!==0)return; // 1Hz
+    let simDt=1;
+    // Markets
+    for(let key in this.markets){
+      let m=this.markets[key];
+      let sp=m.supply-m.demand;
+      let pd=-sp*0.001*m.vol;
+      let wave=Math.sin(this.tickCount*0.01+key.length)*m.vol*0.1;
+      m.price=Math.max(m.base*0.1, m.base+pd+wave);
+      m.supply*=0.95; m.demand*=0.95;
+    }
+    // Businesses
+    for(let b of this.businesses){
+      if(!b.active)continue;
+      let wf=b.workerSlots>0?(b.workers/b.workerSlots):1;
+      b.efficiency=Math.max(0.1,wf);
+      if(b.input){
+        let consumed=b.consRate*b.efficiency*simDt;
+        if(!this.spend(b.input,consumed)) b.efficiency*=0.5;
+        if(this.markets[b.input]){this.markets[b.input].demand+=b.consRate*b.efficiency;}
+      }
+      let produced=b.prodRate*b.efficiency*b.level*simDt;
+      this.addRes(b.output, produced);
+      if(this.markets[b.output]){this.markets[b.output].supply+=b.prodRate*b.efficiency*b.level;}
+    }
+    // Population
+    let p=this.population;
+    let eg=p.growth*p.happiness;
+    p.current=Math.min(p.current*(1+eg), p.capacity);
+    p.available=Math.max(0, p.current*0.5-p.employed);
+  },
+
+  openBizBuilder() { document.getElementById('biz-modal').classList.add('open'); },
+
+  buildBusiness() {
+    let type=document.getElementById('biz-type').value;
+    let cost=1000+this.businesses.length*500;
+    if(!this.spend('credits',cost)){this.toast('Not enough Credits!');return;}
+    let biz;
+    if(type==='mine') biz={type:'Mine',input:'',output:'energy',prodRate:10,consRate:0,workerSlots:3,workers:0,level:1,efficiency:1,active:true};
+    else if(type==='lab') biz={type:'Lab',input:'',output:'data',prodRate:5,workerSlots:2,consRate:0,workers:0,level:1,efficiency:1,active:true};
+    else if(type==='factory') biz={type:'Factory',input:'energy',output:'credits',prodRate:3,consRate:10,workerSlots:4,workers:0,level:1,efficiency:1,active:true};
+    else biz={type:'Research Center',input:'data',output:'research',prodRate:1,consRate:5,workerSlots:2,workers:0,level:1,efficiency:1,active:true};
+    this.businesses.push(biz);
+    document.getElementById('biz-modal').classList.remove('open');
+  },
+
+  assignBizWorker(idx) {
+    let b=this.businesses[idx]; if(!b||b.workers>=b.workerSlots||this.population.available<1)return;
+    b.workers++; this.population.available--; this.population.employed++;
+  },
+
+  marketSell(res, amt) {
+    let m=this.markets[res]; if(!m)return;
+    amt=Math.min(amt, this.resources[res]?this.resources[res].amount:0);
+    if(!this.spend(res,amt))return;
+    this.addRes('credits', amt*m.price);
+    m.supply+=amt;
+  },
+
+  marketBuy(res, amt) {
+    let m=this.markets[res]; if(!m)return;
+    let cost=amt*m.price;
+    if(!this.spend('credits',cost))return;
+    this.addRes(res, amt);
+    m.demand+=amt;
+  },
+
+  // ─── PRESTIGE ────────────────────────────────────────────
+  calcPrestigeReward() {
+    let te=this.resources.energy.totalEarned;
+    if(te<1e10)return 0;
+    return Math.floor(150*Math.sqrt(te/1e10));
+  },
+
+  calcPrestigeMult() {
+    return 1+Math.pow(this.prestigePoints*0.01,0.5);
+  },
+
+  doPrestige() {
+    let reward=this.calcPrestigeReward();
+    if(reward<=0){this.toast('Not enough lifetime energy!');return;}
+    if(!confirm('Prestige for '+this.fmt(reward)+' PP? This resets your energy, generators & upgrades.'))return;
+    this.prestigePoints+=reward;
+    this.lifetimePP+=reward;
+    this.prestigeCount++;
+    this.stats.prestiges++;
+    // Reset
+    for(let k in this.resources){let r=this.resources[k];if(k!=='prestige_points'){r.amount=0;r.totalEarned=0;r.perSec=0;}}
+    this.resources.data.capacity=1000;
+    for(let g of this.generators){if(g.tier===0){g.owned=1;g.mult=1;}else{g.owned=0;g.mult=1;}}
+    for(let u of this.upgrades){u.level=0;}
+    this.workers=[];this.rules=[];this.businesses=[];
+    this.population={current:100,capacity:1000,growth:0.001,happiness:0.8,available:50,employed:0};
+    // Apply prestige bonuses
+    this.applyPrestigeBonuses();
+    this.toast('Prestige! +'+this.fmt(reward)+' PP');
+  },
+
+  applyPrestigeBonuses() {
+    let globalMult=1;
+    for(let pu of this.prestigeUpgrades){
+      if(pu.level<=0)continue;
+      if(pu.type==='globalMult') globalMult+=pu.effect*pu.level;
+      else if(pu.type==='clickMult'){let c=this.generators[0];c.mult+=pu.effect*pu.level;}
+      else if(pu.type==='startEnergy') this.addRes('energy',Math.pow(10,pu.level+2));
+      else if(pu.type==='maxWorkers') this.maxWorkers=3+pu.effect*pu.level;
+      else if(pu.type==='maxRules') this.maxRules=20+pu.effect*pu.level;
+      else if(pu.type==='maxAgents') this.maxAgents=3+pu.effect*pu.level;
+    }
+    // Apply global multiplier to all generators
+    for(let g of this.generators) g.mult*=globalMult;
+    // Also apply base prestige multiplier
+    let pm=this.calcPrestigeMult();
+    for(let g of this.generators) g.mult*=pm;
+  },
+
+  buyPrestigeUpgrade(id) {
+    let pu=this.prestigeUpgrades.find(x=>x.id===id); if(!pu||pu.level>=pu.max)return;
+    let cost=pu.cost*Math.pow(1.5,pu.level);
+    if(this.prestigePoints<cost)return;
+    this.prestigePoints-=cost;
+    pu.level++;
+  },
+
+  doAscension() {
+    if(this.prestigeCount<10){this.toast('Need 10+ prestiges!');return;}
+    let reward=Math.floor(Math.sqrt(this.lifetimePP/1000));
+    if(reward<=0)return;
+    if(!confirm('Ascend for '+reward+' tokens? This resets EVERYTHING including PP.'))return;
+    this.ascensionTokens+=reward;
+    this.ascensionCount++;
+    this.prestigePoints=0;this.lifetimePP=0;this.prestigeCount=0;
+    for(let pu of this.prestigeUpgrades) pu.level=0;
+    this.ascensionMult=1+this.ascensionTokens*0.1;
+    // Full reset
+    for(let k in this.resources){let r=this.resources[k];r.amount=0;r.totalEarned=0;r.perSec=0;}
+    this.resources.data.capacity=1000;
+    for(let g of this.generators){if(g.tier===0){g.owned=1;g.mult=1;}else{g.owned=0;g.mult=1;}}
+    for(let u of this.upgrades) u.level=0;
+    this.workers=[];this.agents=[];this.rules=[];this.businesses=[];
+    this.maxWorkers=3;this.maxRules=20;this.maxAgents=3;
+    this.population={current:100,capacity:1000,growth:0.001,happiness:0.8,available:50,employed:0};
+    this.toast('Ascension! +'+reward+' Tokens');
+  },
+
+  // ─── BOOSTS ──────────────────────────────────────────────
+  tickBoosts(dt) {
+    this.prodBoostMult=1;this.clickBoostMult=1;
+    for(let i=this.boosts.length-1;i>=0;i--){
+      let b=this.boosts[i];
+      b.remaining-=dt;
+      if(b.remaining<=0){this.boosts.splice(i,1);continue;}
+      if(b.type==='prod') this.prodBoostMult*=b.mult;
+      if(b.type==='click') this.clickBoostMult*=b.mult;
+    }
+  },
+
+  activateBoost(name, type, mult, dur) {
+    this.boosts.push({name,type,mult,duration:dur,remaining:dur});
+    this.toast(name+' activated!');
+  },
+
+  // ─── DAILY REWARDS ────────────────────────────────────────
+  canClaimDaily() {
+    let now=Date.now();
+    let today=Math.floor(now/86400000);
+    let last=Math.floor(this.dailyState.lastClaim/86400000);
+    if(today>last) this.dailyState.claimedToday=false;
+    if(today>last+1) this.dailyState.currentDay=0;
+    return !this.dailyState.claimedToday;
+  },
+
+  claimDaily() {
+    if(!this.canClaimDaily())return;
+    let reward=this.dailyRewards[this.dailyState.currentDay];
+    this.addRes(reward.res, reward.amount);
+    this.dailyState.claimedToday=true;
+    this.dailyState.lastClaim=Date.now();
+    this.dailyState.currentDay=(this.dailyState.currentDay+1)%7;
+    if(reward.milestone) this.activateBoost('Daily Mega Boost','prod',3,3600);
+    this.toast('Day '+(this.dailyState.currentDay)+' reward: +'+this.fmt(reward.amount)+' '+reward.res);
+  },
+
+  // ─── ACHIEVEMENTS ────────────────────────────────────────
+  checkAchievements() {
+    for(let a of this.achievements){
+      if(a.done)continue;
+      let val=this.stats[a.track]||0;
+      a.current=val;
+      if(val>=a.target) a.done=true;
+    }
+  },
+
+  claimAchievement(id) {
+    let a=this.achievements.find(x=>x.id===id);
+    if(!a||!a.done||a.claimed)return;
+    this.addRes(a.res, a.reward);
+    a.claimed=true;
+    this.toast(a.name+' claimed!');
+  },
+
+  // ─── PHASE MANAGEMENT ────────────────────────────────────
+  setPhase(p) {
+    if(p<=this.phase)return;
+    this.phase=p;
+    this.toast('UNLOCKED: '+this.phaseNames[p]+' Phase!');
+    this.updateTabs();
+  },
+
+  // ─── UI RENDERING ──────────────────────────────────────
+  updateTabs() {
+    document.querySelectorAll('.tab').forEach(t=>{
+      let phase=parseInt(t.dataset.phase);
+      if(!isNaN(phase)){
+        if(this.phase>=phase) t.classList.remove('locked');
+        else t.classList.add('locked');
+      }
+    });
+    document.getElementById('phase-badge').textContent=this.phaseNames[this.phase];
+  },
+
+  switchTab(id) {
+    this.activeTab=id;
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-'+id).classList.add('active');
+    document.querySelectorAll('.tab').forEach(t=>{
+      t.classList.toggle('active', t.dataset.screen===id);
+    });
+  },
+
+  toast(msg) {
+    let el=document.createElement('div');
+    el.className='toast';
+    el.textContent=msg;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),2300);
+  },
+
+  refreshUI() {
+    // Top bar
+    document.getElementById('top-energy').textContent=this.fmt(this.resources.energy.amount);
+    document.getElementById('top-eps').textContent='+'+this.fmt(this.resources.energy.perSec)+'/s';
+    document.getElementById('tap-power').textContent=this.fmt(this.generators[0].baseProd*this.generators[0].owned*this.generators[0].mult*this.clickBoostMult*this.ascensionMult);
+
+    // Refresh active tab
+    if(this.activeTab==='main') this.refreshMain();
+    else if(this.activeTab==='generators') this.refreshGenerators();
+    else if(this.activeTab==='automation') this.refreshAutomation();
+    else if(this.activeTab==='logic') this.refreshLogic();
+    else if(this.activeTab==='ai') this.refreshAI();
+    else if(this.activeTab==='sim') this.refreshSim();
+    else if(this.activeTab==='prestige') this.refreshPrestige();
+    else if(this.activeTab==='shop') this.refreshShop();
+  },
+
+  refreshMain() {
+    // Boost bar
+    let bb=document.getElementById('boost-bar');
+    if(this.boosts.length>0){
+      bb.innerHTML=this.boosts.map(b=>`<div class="boost-active"><span>${b.name} (${b.mult}x)</span><span>${Math.ceil(b.remaining)}s</span></div>`).join('');
+    } else bb.innerHTML='';
+
+    // Mini generator list
+    let html='';
+    for(let i=1;i<this.generators.length;i++){
+      let g=this.generators[i];
+      if(g.owned<=0 && this.genCost(g,1)>this.resources.energy.totalEarned*10 && i>2)continue;
+      let cost=this.genCost(g,1);
+      let canBuy=this.resources.energy.amount>=cost;
+      html+=`<div class="gen-row">
+        <div class="gen-icon" style="background:${canBuy?'var(--accent)':'var(--border)'}">${g.icon}</div>
+        <div class="gen-info"><div class="gen-name">${g.name}</div><div class="gen-stats">x${g.owned} | ${this.fmt(this.genProd(g)*this.prodBoostMult*this.ascensionMult)}/s</div></div>
+        <span class="gen-cost ${canBuy?'text-green':'text-dim'}">${this.fmt(cost)}</span>
+        <button class="btn btn-sm ${canBuy?'btn-primary':'btn-primary'}" ${canBuy?'':'disabled'} onclick="G.buyGen('${g.id}',1)">Buy</button>
+      </div>`;
+    }
+    document.getElementById('gen-list-main').innerHTML=html;
+  },
+
+  refreshGenerators() {
+    let html='';
+    for(let i=1;i<this.generators.length;i++){
+      let g=this.generators[i];
+      let cost=this.genCost(g,this.buyMode);
+      let canBuy=this.resources.energy.amount>=cost;
+      let prod=this.genProd(g)*this.prodBoostMult*this.ascensionMult;
+      html+=`<div class="gen-row">
+        <div class="gen-icon" style="background:${g.owned>0?'var(--accent)':'var(--border)'}">${g.icon}</div>
+        <div class="gen-info"><div class="gen-name">${g.name} <span class="text-dim text-xs">Tier ${g.tier}</span></div><div class="gen-stats">Owned: ${g.owned} | ${this.fmt(prod)}/s | Mult: ${g.mult.toFixed(1)}x</div></div>
+        <div style="text-align:right">
+          <div class="gen-cost ${canBuy?'text-green':'text-dim'}">${this.fmt(cost)}</div>
+          <button class="btn btn-sm ${canBuy?'btn-primary':'btn-primary'}" ${canBuy?'':'disabled'} onclick="G.buyGen('${g.id}',${this.buyMode})">Buy x${this.buyMode}</button>
+        </div>
+      </div>`;
+    }
+    document.getElementById('gen-list-full').innerHTML=html;
+
+    // Upgrades
+    html='';
+    for(let u of this.upgrades){
+      if(u.level>=u.max) continue;
+      let cost=this.upgCost(u);
+      let canBuy=this.canAfford(u.costRes,cost);
+      html+=`<div class="gen-row">
+        <div class="gen-info"><div class="gen-name">${u.name} <span class="text-dim text-xs">Lv ${u.level}/${u.max}</span></div><div class="gen-stats">${u.desc}</div></div>
+        <div style="text-align:right">
+          <div class="gen-cost ${canBuy?'text-green':'text-dim'}">${this.fmt(cost)}</div>
+          <button class="btn btn-sm ${canBuy?'btn-green':'btn-primary'}" ${canBuy?'':'disabled'} onclick="G.buyUpgrade('${u.id}')">Buy</button>
+        </div>
+      </div>`;
+    }
+    document.getElementById('upgrade-list').innerHTML=html||'<div class="text-sm text-dim">All maxed!</div>';
+  },
+
+  refreshAutomation() {
+    document.getElementById('worker-count').textContent=this.workers.length;
+    document.getElementById('worker-max').textContent=this.maxWorkers;
+    document.getElementById('hire-cost').textContent=this.fmt(100*Math.pow(2,this.workers.length));
+
+    let html='';
+    for(let i=0;i<this.workers.length;i++){
+      let w=this.workers[i];
+      html+=`<div class="worker-card">
+        <div class="row-between mb-1"><span style="font-weight:600">Worker ${i+1} <span class="text-xs text-dim">Lv${w.level}</span></span>
+          <button class="btn btn-sm btn-red" onclick="G.restWorker(${i})">Rest</button></div>
+        <div class="row-between text-sm">
+          <span>Efficiency: <span class="${w.efficiency>0.7?'text-green':'text-red'}">${(w.efficiency*100).toFixed(0)}%</span></span>
+          <select onchange="G.assignWorker(${i},this.value)" style="width:auto;padding:3px 6px">
+            <option value="" ${!w.task?'selected':''}>Idle</option>
+            <option value="energy" ${w.task==='energy'?'selected':''}>Energy</option>
+            <option value="data" ${w.task==='data'?'selected':''}>Data</option>
+            <option value="credits" ${w.task==='credits'?'selected':''}>Credits</option>
+            <option value="research" ${w.task==='research'?'selected':''}>Research</option>
+          </select>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${w.efficiency*100}%;background:${w.efficiency>0.7?'var(--green)':'var(--red)'}"></div></div>
+      </div>`;
+    }
+    document.getElementById('worker-list').innerHTML=html||'<div class="text-sm text-dim">No workers yet. Hire one!</div>';
+
+    // Auto-buy (init if needed)
+    if(this.autoBuy.length===0){
+      for(let i=1;i<this.generators.length;i++){
+        this.autoBuy.push({genId:this.generators[i].id, name:this.generators[i].name, enabled:false, maxSpend:0.5});
+      }
+    }
+    html='';
+    for(let i=0;i<this.autoBuy.length;i++){
+      let ab=this.autoBuy[i];
+      html+=`<div class="gen-row">
+        <label style="display:flex;align-items:center;gap:6px;flex:1;cursor:pointer">
+          <input type="checkbox" ${ab.enabled?'checked':''} onchange="G.autoBuy[${i}].enabled=this.checked">
+          <span class="text-sm">${ab.name}</span>
+        </label>
+        <span class="text-xs text-dim">Max ${(ab.maxSpend*100).toFixed(0)}%</span>
+      </div>`;
+    }
+    document.getElementById('autobuy-list').innerHTML=html;
+  },
+
+  refreshLogic() {
+    document.getElementById('rule-count').textContent=this.rules.length;
+    document.getElementById('rule-max').textContent=this.maxRules;
+    let html='';
+    for(let i=0;i<this.rules.length;i++){
+      let r=this.rules[i];
+      html+=`<div class="rule-card">
+        <div class="row-between mb-1">
+          <span style="font-weight:600">${r.name}</span>
+          <div class="row" style="gap:4px">
+            <button class="btn btn-sm ${r.enabled?'btn-green':''}" style="${r.enabled?'':'background:var(--border);color:var(--dim)'}" onclick="G.rules[${i}].enabled=!G.rules[${i}].enabled">${r.enabled?'ON':'OFF'}</button>
+            <button class="btn btn-sm btn-red" onclick="G.rules.splice(${i},1)">X</button>
+          </div>
+        </div>
+        <div class="condition">IF ${r.cond.target} ${r.cond.type.includes('Above')?'>':'<'} ${G.fmt(r.cond.value)}</div>
+        <div class="action">THEN ${r.act.type==='buyGen'?'Buy':'Sell'} ${r.act.target} x${r.act.value}</div>
+      </div>`;
+    }
+    document.getElementById('rule-list').innerHTML=html||'<div class="text-sm text-dim">No rules yet. Create one or use a template!</div>';
+  },
+
+  refreshAI() {
+    document.getElementById('agent-count').textContent=this.agents.length;
+    document.getElementById('agent-max').textContent=this.maxAgents;
+    let html='';
+    for(let a of this.agents){
+      let actionNames={buyBest:'Buy Best ROI',buyCheap:'Buy Cheapest',upgrade:'Upgrade',sell:'Sell Surplus',save:'Save Up'};
+      html+=`<div class="agent-card">
+        <div class="row-between mb-1">
+          <span style="font-weight:600">${a.name}</span>
+          <button class="btn btn-sm ${a.active?'btn-green':''}" style="${a.active?'':'background:var(--border);color:var(--dim)'}" onclick="G.agents.find(x=>x.id==='${a.id}').active=!G.agents.find(x=>x.id==='${a.id}').active">${a.active?'ON':'OFF'}</button>
+        </div>
+        <div class="text-xs text-dim mb-1">Last: ${actionNames[a.lastAction]||'None'}</div>
+        <div class="stat-bar"><span style="width:50px">Aggr</span><div class="stat-fill" style="width:${a.aggression*100}px;background:var(--red)"></div></div>
+        <div class="stat-bar"><span style="width:50px">Effic</span><div class="stat-fill" style="width:${a.efficiency*100}px;background:var(--accent)"></div></div>
+        <div class="stat-bar"><span style="width:50px">Grow</span><div class="stat-fill" style="width:${a.growth*100}px;background:var(--green)"></div></div>
+        <div class="stat-bar"><span style="width:50px">Stab</span><div class="stat-fill" style="width:${a.stability*100}px;background:var(--gold)"></div></div>
+      </div>`;
+    }
+    document.getElementById('agent-list').innerHTML=html||'<div class="text-sm text-dim">Deploy an AI agent to automate decisions!</div>';
+  },
+
+  refreshSim() {
+    let p=this.population;
+    document.getElementById('pop-current').textContent=Math.floor(p.current);
+    document.getElementById('pop-cap').textContent=Math.floor(p.capacity);
+    document.getElementById('pop-workers').textContent=Math.floor(p.available);
+    document.getElementById('pop-bar').style.width=(p.current/p.capacity*100)+'%';
+    document.getElementById('biz-count').textContent=this.businesses.length;
+    document.getElementById('biz-cost').textContent=this.fmt(1000+this.businesses.length*500);
+
+    // Markets
+    let html='';
+    for(let key in this.markets){
+      if(key==='credits')continue;
+      let m=this.markets[key];
+      let trend=m.price>m.base?'↑':'↓';
+      let tColor=m.price>m.base?'text-green':'text-red';
+      html+=`<div class="market-row">
+        <span class="flex-1" style="font-weight:600">${this.resources[key]?this.resources[key].name:key}</span>
+        <span style="width:60px;text-align:right">${m.price.toFixed(2)}</span>
+        <span style="width:20px;text-align:center" class="${tColor}">${trend}</span>
+        <button class="btn btn-sm btn-green" style="margin-left:4px;padding:3px 8px" onclick="G.marketSell('${key}',100)">Sell</button>
+        <button class="btn btn-sm btn-primary" style="margin-left:4px;padding:3px 8px" onclick="G.marketBuy('${key}',100)">Buy</button>
+      </div>`;
+    }
+    document.getElementById('market-list').innerHTML=html;
+
+    // Businesses
+    html='';
+    for(let i=0;i<this.businesses.length;i++){
+      let b=this.businesses[i];
+      html+=`<div class="gen-row">
+        <div class="gen-info"><div class="gen-name">${b.type} <span class="text-xs text-dim">Lv${b.level}</span></div>
+          <div class="gen-stats">${b.input?b.input+'→':'→'}${b.output} | Workers: ${b.workers}/${b.workerSlots} | Eff: ${(b.efficiency*100).toFixed(0)}%</div></div>
+        <button class="btn btn-sm btn-green" onclick="G.assignBizWorker(${i})" ${b.workers>=b.workerSlots||this.population.available<1?'disabled':''}>+W</button>
+      </div>`;
+    }
+    document.getElementById('biz-list').innerHTML=html||'<div class="text-sm text-dim">No businesses yet.</div>';
+  },
+
+  refreshPrestige() {
+    document.getElementById('pp-current').textContent=this.fmt(this.prestigePoints);
+    document.getElementById('pp-reward').textContent=this.fmt(this.calcPrestigeReward());
+    document.getElementById('prestige-mult').textContent=this.calcPrestigeMult().toFixed(2);
+    document.getElementById('prestige-btn').disabled=this.calcPrestigeReward()<=0;
+    document.getElementById('asc-tokens').textContent=this.fmt(this.ascensionTokens);
+    document.getElementById('asc-btn').disabled=this.prestigeCount<10;
+
+    let html='';
+    for(let pu of this.prestigeUpgrades){
+      let cost=pu.cost*Math.pow(1.5,pu.level);
+      let canBuy=this.prestigePoints>=cost&&pu.level<pu.max;
+      html+=`<div class="gen-row">
+        <div class="gen-info"><div class="gen-name">${pu.name} <span class="text-xs text-dim">Lv ${pu.level}/${pu.max}</span></div><div class="gen-stats">${pu.desc}</div></div>
+        <div style="text-align:right">
+          <div class="gen-cost ${canBuy?'text-gold':'text-dim'}">${this.fmt(cost)} PP</div>
+          <button class="btn btn-sm ${canBuy?'btn-gold':'btn-primary'}" ${canBuy?'':'disabled'} onclick="G.buyPrestigeUpgrade('${pu.id}')">Buy</button>
+        </div>
+      </div>`;
+    }
+    document.getElementById('prestige-upgrades').innerHTML=html;
+  },
+
+  refreshShop() {
+    // Active boosts
+    let html='';
+    if(this.boosts.length>0){
+      html=this.boosts.map(b=>`<div class="boost-active"><span>${b.name} (${b.mult}x ${b.type})</span><span>${Math.ceil(b.remaining)}s</span></div>`).join('');
+    } else html='<div class="text-sm text-dim">No active boosts</div>';
+    document.getElementById('active-boosts').innerHTML=html;
+
+    // Ad boosts
+    document.getElementById('ad-boosts').innerHTML=`
+      <div class="row" style="gap:6px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-gold" onclick="G.activateBoost('2x Production','prod',2,600)">2x Prod (10m)</button>
+        <button class="btn btn-sm btn-gold" onclick="G.activateBoost('5x Tap','click',5,300)">5x Tap (5m)</button>
+        <button class="btn btn-sm btn-gold" onclick="G.activateBoost('3x All','prod',3,180)">3x All (3m)</button>
+      </div>
+    `;
+
+    // Achievements
+    html='';
+    for(let a of this.achievements){
+      let pct=Math.min(100,a.current/a.target*100);
+      html+=`<div class="achievement-row ${a.claimed?'ach-claimed':''}">
+        <span class="ach-icon">${a.done?(a.claimed?'✅':'🏆'):'🔒'}</span>
+        <div class="ach-info">
+          <div style="font-weight:600;font-size:13px">${a.name}</div>
+          <div class="text-xs text-dim">${a.desc} — ${this.fmt(a.current)}/${this.fmt(a.target)}</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        </div>
+        ${a.done&&!a.claimed?`<button class="btn btn-sm btn-gold" onclick="G.claimAchievement('${a.id}')">Claim</button>`:''}
+      </div>`;
+    }
+    document.getElementById('achievement-list').innerHTML=html;
+
+    // Daily
+    let canClaim=this.canClaimDaily();
+    let nextReward=this.dailyRewards[this.dailyState.currentDay];
+    document.getElementById('daily-reward').innerHTML=`
+      <div class="card">
+        <div class="row-between">
+          <span>Day ${this.dailyState.currentDay+1}: <span class="text-gold">${this.fmt(nextReward.amount)} ${nextReward.res}</span>${nextReward.milestone?' + Mega Boost!':''}</span>
+          <button class="btn btn-sm ${canClaim?'btn-gold':'btn-primary'}" ${canClaim?'':'disabled'} onclick="G.claimDaily()">${canClaim?'Claim!':'Claimed'}</button>
+        </div>
+      </div>
+    `;
+  },
+
+  // ─── SAVE / LOAD ────────────────────────────────────────
+  save() {
+    let data={
+      v:1, t:Date.now(), phase:this.phase, gameTime:this.gameTime,
+      res:{}, gens:[], upgs:[], workers:this.workers, autoBuy:this.autoBuy,
+      rules:this.rules, agents:this.agents, businesses:this.businesses,
+      markets:this.markets, population:this.population,
+      pp:this.prestigePoints, lpp:this.lifetimePP, pc:this.prestigeCount,
+      at:this.ascensionTokens, ac:this.ascensionCount, am:this.ascensionMult,
+      pUpgs:this.prestigeUpgrades.map(u=>({id:u.id,level:u.level})),
+      boosts:this.boosts, daily:this.dailyState,
+      achs:this.achievements.map(a=>({id:a.id,current:a.current,done:a.done,claimed:a.claimed})),
+      stats:this.stats, maxW:this.maxWorkers, maxR:this.maxRules, maxA:this.maxAgents,
+    };
+    for(let k in this.resources){
+      let r=this.resources[k];
+      data.res[k]={a:r.amount,te:r.totalEarned,cap:r.capacity};
+    }
+    for(let g of this.generators) data.gens.push({id:g.id,owned:g.owned,mult:g.mult});
+    for(let u of this.upgrades) data.upgs.push({id:u.id,level:u.level});
+    try{localStorage.setItem('evolve_save',JSON.stringify(data));this.toast('Saved!');}catch(e){console.error(e);}
+  },
+
+  load() {
+    try{
+      let json=localStorage.getItem('evolve_save');
+      if(!json)return;
+      let d=JSON.parse(json);
+      this.phase=d.phase||0;
+      this.gameTime=d.gameTime||0;
+      // Resources
+      for(let k in d.res){
+        if(this.resources[k]){
+          this.resources[k].amount=d.res[k].a||0;
+          this.resources[k].totalEarned=d.res[k].te||0;
+          this.resources[k].capacity=d.res[k].cap||0;
+        }
+      }
+      // Generators
+      for(let sg of d.gens){
+        let g=this.generators.find(x=>x.id===sg.id);
+        if(g){g.owned=sg.owned;g.mult=sg.mult;}
+      }
+      // Upgrades
+      for(let su of d.upgs){
+        let u=this.upgrades.find(x=>x.id===su.id);
+        if(u) u.level=su.level;
+      }
+      this.workers=d.workers||[];
+      this.autoBuy=d.autoBuy||[];
+      this.rules=d.rules||[];
+      this.agents=d.agents||[];
+      this.businesses=d.businesses||[];
+      if(d.markets) this.markets=d.markets;
+      if(d.population) this.population=d.population;
+      this.prestigePoints=d.pp||0;
+      this.lifetimePP=d.lpp||0;
+      this.prestigeCount=d.pc||0;
+      this.ascensionTokens=d.at||0;
+      this.ascensionCount=d.ac||0;
+      this.ascensionMult=d.am||1;
+      if(d.pUpgs){for(let su of d.pUpgs){let u=this.prestigeUpgrades.find(x=>x.id===su.id);if(u)u.level=su.level;}}
+      this.boosts=d.boosts||[];
+      if(d.daily) this.dailyState=d.daily;
+      if(d.achs){for(let sa of d.achs){let a=this.achievements.find(x=>x.id===sa.id);if(a){a.current=sa.current;a.done=sa.done;a.claimed=sa.claimed;}}}
+      if(d.stats) Object.assign(this.stats, d.stats);
+      this.maxWorkers=d.maxW||3;
+      this.maxRules=d.maxR||20;
+      this.maxAgents=d.maxA||3;
+
+      // Offline progress
+      if(d.t){
+        let elapsed=Math.min((Date.now()-d.t)/1000, 28800); // 8hr cap
+        if(elapsed>5){
+          let ticks=Math.floor(elapsed);
+          for(let i=0;i<ticks;i++) this.tick(1);
+          this.toast('Welcome back! +'+Math.floor(elapsed/60)+'m offline progress');
+        }
+      }
+      this.updateTabs();
+    }catch(e){console.error('Load failed:',e);}
+  },
+
+  exportSave() {
+    this.save();
+    let json=localStorage.getItem('evolve_save')||'';
+    let blob=new Blob([json],{type:'application/json'});
+    let a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='evolve_save.json';
+    a.click();
+  },
+
+  importSave() {
+    let input=document.createElement('input');
+    input.type='file';input.accept='.json';
+    input.onchange=e=>{
+      let f=e.target.files[0];if(!f)return;
+      let reader=new FileReader();
+      reader.onload=ev=>{
+        try{localStorage.setItem('evolve_save',ev.target.result);location.reload();}
+        catch(err){alert('Invalid save file');}
+      };
+      reader.readAsText(f);
+    };
+    input.click();
+  },
+
+  hardReset() {
+    localStorage.removeItem('evolve_save');
+    location.reload();
+  },
+
+  // ─── INIT ──────────────────────────────────────────────
+  init() {
+    // Tap button
+    document.getElementById('tap-btn').addEventListener('pointerdown', (e)=>{ e.preventDefault(); this.doTap(e); });
+
+    // Load saved game
+    this.load();
+    this.updateTabs();
+
+    // Game loop: 10 ticks/sec
+    setInterval(()=>this.tick(0.1), 100);
+
+    // UI loop: 10 fps
+    setInterval(()=>this.refreshUI(), 100);
+
+    // Auto-save every 30s
+    setInterval(()=>{
+      try{
+        let data=localStorage.getItem('evolve_save');
+        // Silent save
+        let d={
+          v:1, t:Date.now(), phase:this.phase, gameTime:this.gameTime,
+          res:{}, gens:[], upgs:[], workers:this.workers, autoBuy:this.autoBuy,
+          rules:this.rules, agents:this.agents, businesses:this.businesses,
+          markets:this.markets, population:this.population,
+          pp:this.prestigePoints, lpp:this.lifetimePP, pc:this.prestigeCount,
+          at:this.ascensionTokens, ac:this.ascensionCount, am:this.ascensionMult,
+          pUpgs:this.prestigeUpgrades.map(u=>({id:u.id,level:u.level})),
+          boosts:this.boosts, daily:this.dailyState,
+          achs:this.achievements.map(a=>({id:a.id,current:a.current,done:a.done,claimed:a.claimed})),
+          stats:this.stats, maxW:this.maxWorkers, maxR:this.maxRules, maxA:this.maxAgents,
+        };
+        for(let k in this.resources){let r=this.resources[k];d.res[k]={a:r.amount,te:r.totalEarned,cap:r.capacity};}
+        for(let g of this.generators) d.gens.push({id:g.id,owned:g.owned,mult:g.mult});
+        for(let u of this.upgrades) d.upgs.push({id:u.id,level:u.level});
+        localStorage.setItem('evolve_save',JSON.stringify(d));
+      }catch(e){}
+    }, 30000);
+  },
+};
+
+// Start the game
+G.init();
+</script>
+</body>
+</html>
