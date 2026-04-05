@@ -1,0 +1,83 @@
+{
+  "phases": {
+    "incremental": {
+      "index": 0,
+      "unlockCondition": "Game start",
+      "unlockThreshold": 0,
+      "features": ["tap_to_earn", "buy_generators", "buy_upgrades"],
+      "description": "Tap for energy, buy generators, watch numbers go up.",
+      "expectedDuration": "5-15 minutes"
+    },
+    "automation": {
+      "index": 1,
+      "unlockCondition": "energy >= 1,000",
+      "unlockThreshold": 1000,
+      "features": ["workers", "auto_buy", "task_assignment"],
+      "description": "Hire workers, set up auto-buying. The game plays itself (a little).",
+      "expectedDuration": "30-60 minutes"
+    },
+    "logic": {
+      "index": 2,
+      "unlockCondition": "energy >= 100,000",
+      "unlockThreshold": 100000,
+      "features": ["rule_engine", "conditional_logic", "routing"],
+      "description": "Build IF/THEN rules. Your empire becomes programmable.",
+      "expectedDuration": "2-4 hours"
+    },
+    "ai": {
+      "index": 3,
+      "unlockCondition": "energy >= 10,000,000",
+      "unlockThreshold": 10000000,
+      "features": ["ai_agents", "utility_system", "self_optimization"],
+      "description": "Deploy AI agents that make decisions for you.",
+      "expectedDuration": "1-2 days"
+    },
+    "simulation": {
+      "index": 4,
+      "unlockCondition": "energy >= 1,000,000,000",
+      "unlockThreshold": 1000000000,
+      "features": ["businesses", "markets", "population", "economy"],
+      "description": "A full simulated economy. Your empire is now a world.",
+      "expectedDuration": "3-7 days"
+    },
+    "meta": {
+      "index": 5,
+      "unlockCondition": "energy >= 1,000,000,000,000",
+      "unlockThreshold": 1000000000000,
+      "features": ["prestige", "prestige_upgrades", "ascension"],
+      "description": "Reset for permanent power. The cycle begins anew.",
+      "expectedDuration": "Indefinite (endgame loop)"
+    }
+  },
+  "upgrade_trees": {
+    "production": [
+      { "id": "click_power", "baseCost": 50, "costGrowth": 2.0, "maxLevel": 50, "effect": "+100% tap per level" },
+      { "id": "micro_boost", "baseCost": 100, "costGrowth": 1.8, "maxLevel": 100, "effect": "+50% Micro Gen per level" },
+      { "id": "cell_boost", "baseCost": 1000, "costGrowth": 1.8, "maxLevel": 100, "effect": "+50% Power Cell per level" },
+      { "id": "reactor_boost", "baseCost": 10000, "costGrowth": 1.8, "maxLevel": 100, "effect": "+50% Reactor per level" },
+      { "id": "global_speed", "baseCost": 50000, "costGrowth": 3.0, "maxLevel": 20, "effect": "+10% all production per level" }
+    ],
+    "storage": [
+      { "id": "data_storage", "baseCost": 500, "costGrowth": 1.5, "maxLevel": 200, "effect": "+500 Data capacity per level" },
+      { "id": "credit_storage", "baseCost": 5000, "costGrowth": 1.5, "maxLevel": 100, "effect": "+1000 Credit capacity per level" }
+    ],
+    "automation_upgrades": [
+      { "id": "worker_speed", "baseCost": 2000, "costGrowth": 2.0, "maxLevel": 50, "effect": "+20% worker output per level" },
+      { "id": "worker_endurance", "baseCost": 3000, "costGrowth": 2.0, "maxLevel": 30, "effect": "-10% fatigue rate per level" },
+      { "id": "auto_buy_speed", "baseCost": 5000, "costGrowth": 2.5, "maxLevel": 10, "effect": "Auto-buy checks 2x faster per level" }
+    ],
+    "logic_upgrades": [
+      { "id": "extra_rules", "baseCost": 10000, "costGrowth": 2.0, "maxLevel": 20, "effect": "+5 max rules per level" },
+      { "id": "rule_speed", "baseCost": 20000, "costGrowth": 2.5, "maxLevel": 10, "effect": "Rules evaluate 2x faster per level" }
+    ]
+  },
+  "scaling_curves": {
+    "generator_cost": "baseCost * 1.15^owned (exponential, industry standard)",
+    "upgrade_cost": "baseCost * growthRate^level (varies by upgrade)",
+    "prestige_reward": "floor(150 * sqrt(lifetimeEnergy / 1e10))",
+    "prestige_multiplier": "1 + (prestigePoints * 0.01)^0.5",
+    "ascension_reward": "floor(sqrt(lifetimePrestigePoints / 1000))",
+    "worker_efficiency": "max(0.3, 1.0 - 0.01 * hoursWorked)",
+    "market_price": "basePrice * (1 + sin(time * freq) * volatility) + supply_demand_pressure"
+  }
+}

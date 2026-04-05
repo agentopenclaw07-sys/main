@@ -1,0 +1,104 @@
+{
+  "generators": [
+    {
+      "id": "clicker",
+      "displayName": "Manual Tap",
+      "tier": 0,
+      "producesResource": "energy",
+      "baseProduction": 1,
+      "baseCost": 0,
+      "costGrowth": 1.0,
+      "unlockThreshold": 0
+    },
+    {
+      "id": "micro_gen",
+      "displayName": "Micro Generator",
+      "tier": 1,
+      "producesResource": "energy",
+      "baseProduction": 1,
+      "baseCost": 10,
+      "costGrowth": 1.15,
+      "unlockThreshold": 0,
+      "description": "A tiny energy cell. Not much, but it works while you sleep."
+    },
+    {
+      "id": "power_cell",
+      "displayName": "Power Cell",
+      "tier": 2,
+      "producesResource": "energy",
+      "baseProduction": 8,
+      "baseCost": 100,
+      "costGrowth": 1.15,
+      "unlockThreshold": 50,
+      "description": "Compact fuel cell with steady output."
+    },
+    {
+      "id": "reactor",
+      "displayName": "Reactor",
+      "tier": 3,
+      "producesResource": "energy",
+      "baseProduction": 47,
+      "baseCost": 1000,
+      "costGrowth": 1.15,
+      "unlockThreshold": 500,
+      "description": "Fission reactor. Now we're talking."
+    },
+    {
+      "id": "fusion_core",
+      "displayName": "Fusion Core",
+      "tier": 4,
+      "producesResource": "energy",
+      "baseProduction": 260,
+      "baseCost": 12000,
+      "costGrowth": 1.15,
+      "unlockThreshold": 5000,
+      "description": "Clean fusion. The future is here."
+    },
+    {
+      "id": "quantum_array",
+      "displayName": "Quantum Array",
+      "tier": 5,
+      "producesResource": "energy",
+      "baseProduction": 1400,
+      "baseCost": 130000,
+      "costGrowth": 1.15,
+      "unlockThreshold": 50000,
+      "description": "Harvests energy from quantum fluctuations."
+    },
+    {
+      "id": "dyson_collector",
+      "displayName": "Dyson Collector",
+      "tier": 6,
+      "producesResource": "energy",
+      "baseProduction": 7800,
+      "baseCost": 1400000,
+      "costGrowth": 1.15,
+      "unlockThreshold": 500000,
+      "description": "Orbital energy collector. Stellar-class."
+    },
+    {
+      "id": "singularity_engine",
+      "displayName": "Singularity Engine",
+      "tier": 7,
+      "producesResource": "energy",
+      "baseProduction": 44000,
+      "baseCost": 20000000,
+      "costGrowth": 1.15,
+      "unlockThreshold": 5000000,
+      "description": "Extracts energy from a contained singularity."
+    }
+  ],
+  "milestones": {
+    "10_owned": { "multiplier": 2, "description": "2x production at 10 owned" },
+    "25_owned": { "multiplier": 2, "description": "2x production at 25 owned" },
+    "50_owned": { "multiplier": 2, "description": "2x production at 50 owned" },
+    "100_owned": { "multiplier": 3, "description": "3x production at 100 owned" },
+    "250_owned": { "multiplier": 4, "description": "4x production at 250 owned" }
+  },
+  "balancing_notes": {
+    "cost_formula": "baseCost * 1.15^owned",
+    "production_ratio": "Each tier produces ~5.5x the previous tier",
+    "payback_period": "First unit of each tier should pay for itself in ~30-60 seconds",
+    "bulk_buy_formula": "baseCost * r^owned * (r^count - 1) / (r - 1)"
+  }
+}

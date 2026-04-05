@@ -1,0 +1,71 @@
+{
+  "daily_rewards": [
+    { "day": 1, "resource": "energy", "amount": 100, "milestone": false },
+    { "day": 2, "resource": "energy", "amount": 250, "milestone": false },
+    { "day": 3, "resource": "data", "amount": 50, "milestone": false },
+    { "day": 4, "resource": "energy", "amount": 500, "milestone": false },
+    { "day": 5, "resource": "credits", "amount": 100, "milestone": false },
+    { "day": 6, "resource": "energy", "amount": 1000, "milestone": false },
+    { "day": 7, "resource": "energy", "amount": 5000, "milestone": true, "bonusBoost": "3x_production_1hr" }
+  ],
+  "event_templates": [
+    {
+      "id": "double_energy_weekend",
+      "name": "Power Surge Weekend",
+      "description": "All energy production doubled!",
+      "type": "ProductionBoost",
+      "modifier": 2.0,
+      "targetResource": "energy",
+      "durationHours": 48,
+      "recurring": "weekly",
+      "recurringDay": "saturday"
+    },
+    {
+      "id": "half_price_generators",
+      "name": "Generator Sale",
+      "description": "All generators cost 50% less!",
+      "type": "CostReduction",
+      "modifier": 0.5,
+      "targetResource": "energy",
+      "durationHours": 24,
+      "recurring": "monthly",
+      "recurringDay": 15
+    },
+    {
+      "id": "prestige_festival",
+      "name": "Prestige Festival",
+      "description": "Earn 50% more Prestige Points!",
+      "type": "PrestigeBonus",
+      "modifier": 1.5,
+      "durationHours": 72,
+      "recurring": "monthly",
+      "recurringDay": 1
+    },
+    {
+      "id": "research_rush",
+      "name": "Research Rush",
+      "description": "Research production tripled!",
+      "type": "ProductionBoost",
+      "modifier": 3.0,
+      "targetResource": "research",
+      "durationHours": 12,
+      "recurring": "none",
+      "notes": "Triggered manually by live ops team"
+    }
+  ],
+  "achievements": [
+    { "id": "first_tap", "name": "First Steps", "track": "total_taps", "target": 1, "reward": "energy:10" },
+    { "id": "tap_100", "name": "Tap Happy", "track": "total_taps", "target": 100, "reward": "energy:500" },
+    { "id": "tap_10000", "name": "Tap Master", "track": "total_taps", "target": 10000, "reward": "energy:50000" },
+    { "id": "energy_1k", "name": "Power Surge", "track": "total_energy", "target": 1000, "reward": "energy:200" },
+    { "id": "energy_1m", "name": "Megawatt", "track": "total_energy", "target": 1000000, "reward": "data:1000" },
+    { "id": "energy_1b", "name": "Gigawatt", "track": "total_energy", "target": 1000000000, "reward": "credits:10000" },
+    { "id": "first_gen", "name": "Automation Begins", "track": "generators_bought", "target": 1, "reward": "energy:50" },
+    { "id": "gen_100", "name": "Factory Floor", "track": "generators_bought", "target": 100, "reward": "energy:10000" },
+    { "id": "first_worker", "name": "Employee #1", "track": "workers_hired", "target": 1, "reward": "energy:500" },
+    { "id": "first_rule", "name": "Logician", "track": "rules_created", "target": 1, "reward": "data:100" },
+    { "id": "first_ai", "name": "Rise of the Machines", "track": "ai_agents_deployed", "target": 1, "reward": "energy:1000000" },
+    { "id": "first_prestige", "name": "Rebirth", "track": "prestige_count", "target": 1, "reward": "prestige_points:5" },
+    { "id": "prestige_10", "name": "Veteran", "track": "prestige_count", "target": 10, "reward": "prestige_points:50" }
+  ]
+}
