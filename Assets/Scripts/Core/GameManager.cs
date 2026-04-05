@@ -44,6 +44,7 @@ namespace Evolve.Core
             RegisterSystem(new Logic.LogicSystem());
             RegisterSystem(new AI.AISystem());
             RegisterSystem(new Simulation.SimulationSystem());
+            RegisterSystem(new Trading.TradingAgentSystem());
             RegisterSystem(new Meta.MetaSystem());
             RegisterSystem(new Monetization.MonetizationSystem());
             RegisterSystem(new LiveOps.LiveOpsSystem());

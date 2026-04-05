@@ -68,6 +68,26 @@ html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-sy
 .stat-fill{height:8px;border-radius:4px;background:var(--accent2)}
 .market-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
 .market-row:last-child{border-bottom:none}
+.trader-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.trader-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.trader-name{font-weight:700;font-size:14px}
+.trader-pnl-pos{color:var(--green);font-weight:700}
+.trader-pnl-neg{color:var(--red);font-weight:700}
+.strat-row{display:flex;align-items:center;gap:6px;font-size:11px;padding:2px 0}
+.strat-name{width:80px;color:var(--dim)}
+.strat-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.strat-bar-fill{height:100%;border-radius:3px;transition:width 0.4s}
+.strat-pnl{width:60px;text-align:right;font-size:10px}
+.position-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 8px;background:rgba(59,130,246,0.08);border-radius:6px;margin-bottom:3px}
+.trade-log-row{display:flex;gap:6px;align-items:center;font-size:11px;padding:3px 0;border-bottom:1px solid rgba(51,65,85,0.4)}
+.trade-log-row:last-child{border-bottom:none}
+.trade-buy{color:var(--green)}
+.trade-sell{color:var(--red)}
+.sparkline{display:flex;align-items:flex-end;gap:1px;height:20px}
+.spark-bar{width:4px;border-radius:1px;min-height:2px}
+.market-intel-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;gap:6px}
+.market-intel-row:last-child{border-bottom:none}
+.ma-badge{font-size:9px;padding:1px 5px;border-radius:4px;background:rgba(59,130,246,0.15);color:var(--accent)}
 .toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--accent2);color:#fff;padding:10px 20px;border-radius:8px;font-weight:600;z-index:1000;animation:toastIn 0.3s,toastOut 0.3s 2s forwards;pointer-events:none}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 @keyframes toastOut{to{opacity:0;transform:translateX(-50%) translateY(-20px)}}
@@ -181,6 +201,28 @@ select,input[type=number]{background:var(--card);border:1px solid var(--border);
     <div id="biz-list"></div>
   </div>
 
+  <!-- TRADING SCREEN -->
+  <div class="screen" id="screen-trading">
+    <!-- Market Intelligence Panel -->
+    <div class="card" id="market-intel-card">
+      <div class="card-title">Market Intelligence</div>
+      <div id="market-intel-list"></div>
+    </div>
+
+    <!-- Trading Agents -->
+    <div class="row-between mb-2">
+      <div class="section-header" style="margin:0;border:none">Trading Agents (<span id="trader-count">0</span>/<span id="trader-max">2</span>)</div>
+      <button class="btn btn-sm btn-primary" onclick="G.deployTrader()">+ Deploy</button>
+    </div>
+    <div id="trader-list"></div>
+
+    <!-- Recent Trade Log -->
+    <div class="section-header">Live Trade Feed</div>
+    <div class="card" style="padding:8px">
+      <div id="trade-log"><div class="text-sm text-dim">Trades will appear here…</div></div>
+    </div>
+  </div>
+
   <!-- PRESTIGE SCREEN -->
   <div class="screen" id="screen-prestige">
     <div class="card" style="text-align:center;border-color:var(--accent2)">
@@ -232,6 +274,7 @@ select,input[type=number]{background:var(--card);border:1px solid var(--border);
     <div class="tab locked" data-screen="logic" data-phase="2" onclick="G.switchTab('logic')"><span class="tab-icon">&#128268;</span>Logic</div>
     <div class="tab locked" data-screen="ai" data-phase="3" onclick="G.switchTab('ai')"><span class="tab-icon">&#129302;</span>AI</div>
     <div class="tab locked" data-screen="sim" data-phase="4" onclick="G.switchTab('sim')"><span class="tab-icon">&#127758;</span>Sim</div>
+    <div class="tab locked" data-screen="trading" data-phase="4" onclick="G.switchTab('trading')"><span class="tab-icon">&#128200;</span>Trade</div>
     <div class="tab locked" data-screen="prestige" data-phase="5" onclick="G.switchTab('prestige')"><span class="tab-icon">&#11088;</span>Meta</div>
     <div class="tab" data-screen="shop" onclick="G.switchTab('shop')"><span class="tab-icon">&#127873;</span>More</div>
   </div>
@@ -351,6 +394,22 @@ const G = {
   },
   population: { current:100, capacity:1000, growth:0.001, happiness:0.8, available:50, employed:0 },
 
+  // ─── TRADING AGENTS ──────────────────────────────────────
+  tradingAgents: [],
+  maxTradingAgents: 2,
+  // Rolling price history per resource (last 30 sim-ticks)
+  priceHistory: { energy:[], data:[], credits:[], research:[] },
+  HIST_LEN: 30,
+  SHORT_MA: 5,
+  LONG_MA: 20,
+  // Risk parameters
+  MAX_POS_PCT: 0.25,
+  STOP_LOSS_PCT: 0.15,
+  TAKE_PROFIT_PCT: 0.20,
+  MAX_EXPOSURE_PCT: 0.70,
+  MIN_SIGNAL: 0.30,
+  TRADE_LEARNING_RATE: 0.08,
+
   // Meta / Prestige
   prestigePoints: 0,
   lifetimePP: 0,
@@ -462,6 +521,8 @@ const G = {
     if(this.phase>=3) this.tickAI(dt);
     // Simulation
     if(this.phase>=4) this.tickSimulation(dt);
+    // Trading agents (require simulation phase)
+    if(this.phase>=4) this.tickTrading(dt);
     // Boosts
     this.tickBoosts(dt);
     // Achievements
@@ -722,6 +783,8 @@ const G = {
       m.price=Math.max(m.base*0.1, m.base+pd+wave);
       m.supply*=0.95; m.demand*=0.95;
     }
+    // Record price history for trading agents
+    this.recordPriceHistory();
     // Businesses
     for(let b of this.businesses){
       if(!b.active)continue;
@@ -779,6 +842,208 @@ const G = {
     m.demand+=amt;
   },
 
+  // ─── TRADING ENGINE ──────────────────────────────────────
+
+  recordPriceHistory() {
+    for(let key in this.markets){
+      if(!this.priceHistory[key]) this.priceHistory[key]=[];
+      this.priceHistory[key].push(this.markets[key].price);
+      if(this.priceHistory[key].length>this.HIST_LEN)
+        this.priceHistory[key].shift();
+    }
+  },
+
+  getMA(resourceId, period) {
+    let h=this.priceHistory[resourceId]||[];
+    if(h.length<period) return 0;
+    let slice=h.slice(-period);
+    return slice.reduce((a,b)=>a+b,0)/period;
+  },
+
+  // Score a strategy for a given market. Returns {signal:'hold'|'buy'|'sell', score:0..N}
+  scoreStrategy(stratType, resourceId) {
+    let m=this.markets[resourceId];
+    if(!m) return {signal:'hold',score:0};
+    let shortMA=this.getMA(resourceId,this.SHORT_MA);
+    let longMA =this.getMA(resourceId,this.LONG_MA);
+    if(shortMA===0||longMA===0) return {signal:'hold',score:0};
+    let price=m.price, base=m.base;
+
+    switch(stratType){
+      case 'meanReversion':{
+        let dev=(price-longMA)/longMA;
+        if(dev<-0.05) return {signal:'buy',  score:Math.abs(dev)*3};
+        if(dev> 0.05) return {signal:'sell', score:dev*3};
+        return {signal:'hold',score:0};
+      }
+      case 'momentum':{
+        let cross=(shortMA-longMA)/longMA;
+        if(cross> 0.02) return {signal:'buy',  score:cross*5};
+        if(cross<-0.02) return {signal:'sell', score:Math.abs(cross)*5};
+        return {signal:'hold',score:0};
+      }
+      case 'arbitrage':{
+        let dev=(price-base)/base;
+        if(dev<-0.10) return {signal:'buy',  score:Math.abs(dev)*4};
+        if(dev> 0.10) return {signal:'sell', score:dev*4};
+        return {signal:'hold',score:0};
+      }
+      case 'valueBased':{
+        let ratio=m.supply>0?m.demand/m.supply:2;
+        if(ratio>1.5) return {signal:'buy',  score:(ratio-1)*0.5};
+        if(ratio<0.5) return {signal:'sell', score:1-ratio};
+        return {signal:'hold',score:0};
+      }
+      case 'volatility':{
+        if(m.vol<0.2) return {signal:'hold',score:0};
+        let thresh=0.08*(m.vol/0.3);
+        let dev=(price-longMA)/longMA;
+        if(dev<-thresh) return {signal:'buy',  score:m.vol*Math.abs(dev)*3};
+        if(dev> thresh) return {signal:'sell', score:m.vol*dev*3};
+        return {signal:'hold',score:0};
+      }
+    }
+    return {signal:'hold',score:0};
+  },
+
+  tickTrading(dt) {
+    // Auto-spawn first agent when entering Simulation phase
+    if(this.tradingAgents.length===0){
+      this.deployTrader('Quant-Alpha');
+      return;
+    }
+
+    for(let agent of this.tradingAgents){
+      if(!agent.active) continue;
+      agent.timer=(agent.timer||0)+dt;
+      if(agent.timer<agent.interval) continue;
+      agent.timer=0;
+
+      // 1. Check stop-loss / take-profit on open positions
+      this.checkTradingExits(agent);
+      // 2. Scan for new entry opportunities
+      this.evaluateTradingEntries(agent);
+    }
+  },
+
+  checkTradingExits(agent) {
+    for(let i=agent.positions.length-1;i>=0;i--){
+      let pos=agent.positions[i];
+      let currentPrice=this.markets[pos.resource].price;
+      if(currentPrice<=pos.stopLoss||currentPrice>=pos.takeProfit){
+        this.closeTradePosition(agent,i,currentPrice);
+      }
+    }
+  },
+
+  evaluateTradingEntries(agent) {
+    let tradeable=['energy','data','research'];
+    for(let res of tradeable){
+      if(agent.positions.some(p=>p.resource===res)) continue; // already in this market
+
+      let winner=null, bestWeighted=0;
+      for(let s of agent.strategies){
+        let {signal,score}=this.scoreStrategy(s.type,res);
+        if(signal!=='buy') continue;
+        let w=score*(s.weight+s.bias);
+        if(w>bestWeighted){bestWeighted=w;winner=s;}
+      }
+
+      if(winner&&bestWeighted>=this.MIN_SIGNAL){
+        this.openTradePosition(agent,res,winner);
+      }
+    }
+  },
+
+  openTradePosition(agent, resourceId, strat) {
+    let credits=this.resources.credits.amount;
+    let maxSpend=credits*agent.allocation*this.MAX_POS_PCT;
+    if(maxSpend<1) return;
+
+    // Total exposure check
+    let exposed=agent.positions.reduce((s,p)=>s+p.amount*this.markets[p.resource].price,0);
+    if(exposed>=credits*agent.allocation*this.MAX_EXPOSURE_PCT) return;
+
+    let price=this.markets[resourceId].price;
+    let amount=maxSpend/price;
+    if(amount<0.01) return;
+
+    // Execute buy via market
+    let cost=amount*price;
+    if(!this.spend('credits',cost)) return;
+    this.addRes(resourceId,amount);
+    this.markets[resourceId].demand+=amount;
+
+    agent.positions.push({
+      resource:resourceId, amount, entryPrice:price,
+      stopLoss:price*(1-this.STOP_LOSS_PCT),
+      takeProfit:price*(1+this.TAKE_PROFIT_PCT),
+      strategy:strat.type, openTime:this.gameTime,
+    });
+
+    let rec={type:'buy',resource:resourceId,price,amount,pnl:0,strategy:strat.type,t:this.gameTime};
+    this.appendTradeRecord(agent,rec);
+  },
+
+  closeTradePosition(agent, idx, closePrice) {
+    let pos=agent.positions[idx];
+
+    // Execute sell via market
+    if(!this.spend(pos.resource,pos.amount)) return;
+    let revenue=pos.amount*closePrice;
+    this.addRes('credits',revenue);
+    this.markets[pos.resource].supply+=pos.amount;
+
+    let pnl=(closePrice-pos.entryPrice)*pos.amount;
+
+    // Reinforcement learning — update strategy bias
+    let strat=agent.strategies.find(s=>s.type===pos.strategy);
+    if(strat){
+      strat.totalTrades++;
+      strat.totalPnL+=pnl;
+      if(pnl>0) strat.wins++;
+      let normReturn=pnl/(pos.entryPrice*pos.amount);
+      let signal=pnl>0?normReturn:normReturn*0.5;
+      strat.bias=Math.max(-1.5,Math.min(1.5, strat.bias+this.TRADE_LEARNING_RATE*signal));
+    }
+
+    agent.totalPnL+=pnl;
+    agent.totalTrades++;
+    if(pnl>0) agent.wins++;
+
+    let rec={type:'sell',resource:resourceId,price:closePrice,amount:pos.amount,pnl,strategy:pos.strategy,t:this.gameTime};
+    // fix resourceId ref
+    rec.resource=pos.resource;
+    this.appendTradeRecord(agent,rec);
+
+    agent.positions.splice(idx,1);
+  },
+
+  appendTradeRecord(agent, rec) {
+    agent.recentTrades.unshift(rec);
+    if(agent.recentTrades.length>30) agent.recentTrades.pop();
+  },
+
+  deployTrader(name) {
+    if(this.tradingAgents.length>=this.maxTradingAgents) return;
+    let names=['Quant','Alpha','Beta','Sigma','Delta','Gamma'];
+    let n=name||(names[this.tradingAgents.length%names.length]+'-T'+(this.tradingAgents.length+1));
+    this.tradingAgents.push({
+      id:'trader'+this.tradingAgents.length,
+      name:n, active:true, interval:10, timer:0,
+      allocation:0.30,
+      positions:[], recentTrades:[],
+      totalPnL:0, totalTrades:0, wins:0,
+      strategies:[
+        {type:'meanReversion', weight:1.0, bias:0, wins:0, totalTrades:0, totalPnL:0},
+        {type:'momentum',      weight:0.8, bias:0, wins:0, totalTrades:0, totalPnL:0},
+        {type:'arbitrage',     weight:0.9, bias:0, wins:0, totalTrades:0, totalPnL:0},
+        {type:'valueBased',    weight:0.7, bias:0, wins:0, totalTrades:0, totalPnL:0},
+        {type:'volatility',    weight:0.6, bias:0, wins:0, totalTrades:0, totalPnL:0},
+      ]
+    });
+  },
+
   // ─── PRESTIGE ────────────────────────────────────────────
   calcPrestigeReward() {
     let te=this.resources.energy.totalEarned;
@@ -805,6 +1070,10 @@ const G = {
     for(let u of this.upgrades){u.level=0;}
     this.workers=[];this.rules=[];this.businesses=[];
     this.population={current:100,capacity:1000,growth:0.001,happiness:0.8,available:50,employed:0};
+    // Close all open trading positions before reset
+    for(let agent of this.tradingAgents){
+      agent.positions=[];
+    }
     // Apply prestige bonuses
     this.applyPrestigeBonuses();
     this.toast('Prestige! +'+this.fmt(reward)+' PP');
@@ -968,6 +1237,7 @@ const G = {
     else if(this.activeTab==='logic') { if(fullRebuild) this.refreshLogic(); }
     else if(this.activeTab==='ai') { if(fullRebuild) this.refreshAI(); }
     else if(this.activeTab==='sim') { if(fullRebuild) this.refreshSim(); }
+    else if(this.activeTab==='trading') { if(fullRebuild) this.refreshTrading(); }
     else if(this.activeTab==='prestige') { if(fullRebuild) this.refreshPrestige(); }
     else if(this.activeTab==='shop') { if(fullRebuild) this.refreshShop(); }
   },
@@ -1185,6 +1455,137 @@ const G = {
     document.getElementById('biz-list').innerHTML=html||'<div class="text-sm text-dim">No businesses yet.</div>';
   },
 
+  // ─── SPARKLINE HELPER ─────────────────────────────────────
+  sparkline(data, color) {
+    if(!data||data.length===0) return '<div class="sparkline"></div>';
+    let max=Math.max(...data), min=Math.min(...data);
+    let range=max-min||1;
+    let bars=data.slice(-12).map(v=>{
+      let h=Math.round(((v-min)/range)*18)+2;
+      return `<div class="spark-bar" style="height:${h}px;background:${color}"></div>`;
+    }).join('');
+    return `<div class="sparkline">${bars}</div>`;
+  },
+
+  refreshTrading() {
+    let stratNames={
+      meanReversion:'Mean Rev',momentum:'Momentum',
+      arbitrage:'Arbitrage',valueBased:'Value',volatility:'Volatility'
+    };
+    let stratColors={
+      meanReversion:'var(--accent)',momentum:'var(--green)',
+      arbitrage:'var(--gold)',valueBased:'var(--accent2)',volatility:'var(--orange)'
+    };
+
+    // ── Market Intelligence ──────────────────────────────
+    let intelHtml='';
+    for(let key of ['energy','data','research']){
+      let m=this.markets[key];
+      let shortMA=this.getMA(key,this.SHORT_MA);
+      let longMA =this.getMA(key,this.LONG_MA);
+      let trend=shortMA>longMA?'↑ Bull':'↓ Bear';
+      let tColor=shortMA>longMA?'text-green':'text-red';
+      let spark=this.sparkline(this.priceHistory[key]||[], shortMA>longMA?'#22c55e':'#ef4444');
+      intelHtml+=`<div class="market-intel-row">
+        <span style="width:64px;font-weight:600">${this.resources[key].name}</span>
+        ${spark}
+        <span style="width:44px;text-align:right">${m.price.toFixed(2)}</span>
+        <span class="${tColor}" style="width:50px;text-align:center;font-size:11px">${trend}</span>
+        <span class="ma-badge">MA5:${shortMA>0?shortMA.toFixed(2):'—'}</span>
+        <span class="ma-badge">MA20:${longMA>0?longMA.toFixed(2):'—'}</span>
+      </div>`;
+    }
+    document.getElementById('market-intel-list').innerHTML=intelHtml||'<div class="text-sm text-dim">Waiting for price data…</div>';
+
+    // ── Trader count ────────────────────────────────────
+    document.getElementById('trader-count').textContent=this.tradingAgents.length;
+    document.getElementById('trader-max').textContent=this.maxTradingAgents;
+
+    // ── Agent cards ─────────────────────────────────────
+    let agentHtml='';
+    for(let agent of this.tradingAgents){
+      let pnlClass=agent.totalPnL>=0?'trader-pnl-pos':'trader-pnl-neg';
+      let pnlSign=agent.totalPnL>=0?'+':'';
+      let winPct=agent.totalTrades>0?((agent.wins/agent.totalTrades)*100).toFixed(0)+'%':'—';
+
+      // Strategy bars — normalize effective weights to 0-100%
+      let maxW=Math.max(...agent.strategies.map(s=>Math.max(0,s.weight+s.bias)));
+      let stratHtml=agent.strategies.map(s=>{
+        let eff=Math.max(0,s.weight+s.bias);
+        let barW=maxW>0?Math.round((eff/maxW)*100):0;
+        let pnlTxt=s.totalTrades>0?(s.totalPnL>=0?'<span class="trader-pnl-pos">+'+this.fmt(s.totalPnL)+'</span>':'<span class="trader-pnl-neg">'+this.fmt(s.totalPnL)+'</span>'):'—';
+        let wr=s.totalTrades>0?(s.wins/s.totalTrades*100).toFixed(0)+'%':'—';
+        return `<div class="strat-row">
+          <span class="strat-name">${stratNames[s.type]}</span>
+          <div class="strat-bar-wrap"><div class="strat-bar-fill" style="width:${barW}%;background:${stratColors[s.type]}"></div></div>
+          <span class="strat-pnl">${pnlTxt} <span class="text-dim">${wr}</span></span>
+        </div>`;
+      }).join('');
+
+      // Open positions
+      let posHtml='';
+      for(let pos of agent.positions){
+        let curP=this.markets[pos.resource].price;
+        let unrealPnL=(curP-pos.entryPrice)*pos.amount;
+        let pClass=unrealPnL>=0?'trader-pnl-pos':'trader-pnl-neg';
+        let sign=unrealPnL>=0?'+':'';
+        posHtml+=`<div class="position-row">
+          <span>📈 ${this.resources[pos.resource].name} ${this.fmt(pos.amount)}</span>
+          <span class="text-dim">@ ${pos.entryPrice.toFixed(2)}</span>
+          <span class="${pClass}">${sign}${this.fmt(unrealPnL)}</span>
+        </div>`;
+      }
+      if(!posHtml) posHtml='<div class="text-xs text-dim" style="padding:2px 0">No open positions</div>';
+
+      agentHtml+=`<div class="trader-card">
+        <div class="trader-header">
+          <span class="trader-name">🤖 ${agent.name}</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="${pnlClass}" style="font-size:12px">${pnlSign}${this.fmt(agent.totalPnL)} cr</span>
+            <button class="btn btn-sm ${agent.active?'btn-green':''}" style="${agent.active?'':'background:var(--border);color:var(--dim)'}"
+              onclick="G.tradingAgents.find(a=>a.id==='${agent.id}').active=!G.tradingAgents.find(a=>a.id==='${agent.id}').active">${agent.active?'ON':'OFF'}</button>
+          </div>
+        </div>
+        <div class="row-between text-xs text-dim mb-2">
+          <span>Trades: ${agent.totalTrades} | Win rate: ${winPct}</span>
+          <span>Alloc: ${(agent.allocation*100).toFixed(0)}% credits</span>
+        </div>
+
+        <div class="text-xs text-dim mb-1" style="text-transform:uppercase;letter-spacing:0.5px">Strategy Weights (learned)</div>
+        ${stratHtml}
+
+        <div class="text-xs text-dim" style="text-transform:uppercase;letter-spacing:0.5px;margin:8px 0 4px">Open Positions</div>
+        ${posHtml}
+      </div>`;
+    }
+    document.getElementById('trader-list').innerHTML=agentHtml||'<div class="text-sm text-dim">No trading agents deployed. Click "+ Deploy" to start.</div>';
+
+    // ── Trade log ────────────────────────────────────────
+    let allTrades=[];
+    for(let agent of this.tradingAgents){
+      for(let t of agent.recentTrades) allTrades.push({...t,agentName:agent.name});
+    }
+    allTrades.sort((a,b)=>b.t-a.t);
+
+    let logHtml='';
+    for(let t of allTrades.slice(0,20)){
+      let isBuy=t.type==='buy';
+      let icon=isBuy?'▲':'▼';
+      let cls=isBuy?'trade-buy':'trade-sell';
+      let pnlStr=(!isBuy&&t.pnl!==undefined)?` <span class="${t.pnl>=0?'trader-pnl-pos':'trader-pnl-neg'}">${t.pnl>=0?'+':''}${this.fmt(t.pnl)}</span>`:'';
+      logHtml+=`<div class="trade-log-row">
+        <span class="${cls}">${icon}</span>
+        <span class="text-dim">${t.agentName}</span>
+        <span style="font-weight:600">${isBuy?'BUY':'SELL'}</span>
+        <span>${this.resources[t.resource].name}</span>
+        <span class="text-dim">${this.fmt(t.amount)} @ ${t.price.toFixed(2)}</span>
+        ${pnlStr}
+        <span class="text-dim" style="margin-left:auto">[${stratNames[t.strategy]||t.strategy}]</span>
+      </div>`;
+    }
+    document.getElementById('trade-log').innerHTML=logHtml||'<div class="text-sm text-dim">Trades will appear here…</div>';
+  },
+
   refreshPrestige() {
     document.getElementById('pp-current').textContent=this.fmt(this.prestigePoints);
     document.getElementById('pp-reward').textContent=this.fmt(this.calcPrestigeReward());
@@ -1267,6 +1668,7 @@ const G = {
       boosts:this.boosts, daily:this.dailyState,
       achs:this.achievements.map(a=>({id:a.id,current:a.current,done:a.done,claimed:a.claimed})),
       stats:this.stats, maxW:this.maxWorkers, maxR:this.maxRules, maxA:this.maxAgents,
+      traders:this.tradingAgents, maxTA:this.maxTradingAgents, priceHist:this.priceHistory,
     };
     for(let k in this.resources){
       let r=this.resources[k];
@@ -1323,6 +1725,9 @@ const G = {
       this.maxWorkers=d.maxW||3;
       this.maxRules=d.maxR||20;
       this.maxAgents=d.maxA||3;
+      if(d.traders) this.tradingAgents=d.traders;
+      if(d.maxTA) this.maxTradingAgents=d.maxTA;
+      if(d.priceHist) this.priceHistory=d.priceHist;
 
       // Offline progress
       if(d.t){
@@ -1398,6 +1803,7 @@ const G = {
           boosts:this.boosts, daily:this.dailyState,
           achs:this.achievements.map(a=>({id:a.id,current:a.current,done:a.done,claimed:a.claimed})),
           stats:this.stats, maxW:this.maxWorkers, maxR:this.maxRules, maxA:this.maxAgents,
+          traders:this.tradingAgents, maxTA:this.maxTradingAgents, priceHist:this.priceHistory,
         };
         for(let k in this.resources){let r=this.resources[k];d.res[k]={a:r.amount,te:r.totalEarned,cap:r.capacity};}
         for(let g of this.generators) d.gens.push({id:g.id,owned:g.owned,mult:g.mult});
