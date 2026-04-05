@@ -950,21 +950,42 @@ const G = {
     setTimeout(()=>el.remove(),2300);
   },
 
+  _uiFrame: 0,
+
   refreshUI() {
+    this._uiFrame++;
     // Top bar
     document.getElementById('top-energy').textContent=this.fmt(this.resources.energy.amount);
     document.getElementById('top-eps').textContent='+'+this.fmt(this.resources.energy.perSec)+'/s';
     document.getElementById('tap-power').textContent=this.fmt(this.generators[0].baseProd*this.generators[0].owned*this.generators[0].mult*this.clickBoostMult*this.ascensionMult);
 
-    // Refresh active tab
+    // Refresh active tab — full rebuild every 5th frame (0.5s), fast update otherwise
+    let fullRebuild = (this._uiFrame % 5 === 0) || this._forceRebuild;
+    this._forceRebuild = false;
     if(this.activeTab==='main') this.refreshMain();
-    else if(this.activeTab==='generators') this.refreshGenerators();
-    else if(this.activeTab==='automation') this.refreshAutomation();
-    else if(this.activeTab==='logic') this.refreshLogic();
-    else if(this.activeTab==='ai') this.refreshAI();
-    else if(this.activeTab==='sim') this.refreshSim();
-    else if(this.activeTab==='prestige') this.refreshPrestige();
-    else if(this.activeTab==='shop') this.refreshShop();
+    else if(this.activeTab==='generators') { if(fullRebuild) this.refreshGenerators(); else this.quickUpdateGenerators(); }
+    else if(this.activeTab==='automation') { if(fullRebuild) this.refreshAutomation(); }
+    else if(this.activeTab==='logic') { if(fullRebuild) this.refreshLogic(); }
+    else if(this.activeTab==='ai') { if(fullRebuild) this.refreshAI(); }
+    else if(this.activeTab==='sim') { if(fullRebuild) this.refreshSim(); }
+    else if(this.activeTab==='prestige') { if(fullRebuild) this.refreshPrestige(); }
+    else if(this.activeTab==='shop') { if(fullRebuild) this.refreshShop(); }
+  },
+
+  // Fast update: just toggle disabled/enabled and update cost text without rebuilding innerHTML
+  quickUpdateGenerators() {
+    let btns = document.querySelectorAll('#gen-list-full .btn[data-genid]');
+    btns.forEach(btn => {
+      let id=btn.dataset.genid;
+      let g=this.generators.find(x=>x.id===id);
+      if(g){let cost=this.genCost(g,this.buyMode);btn.disabled=!this.canAfford('energy',cost);}
+    });
+    let ubtns = document.querySelectorAll('#upgrade-list .btn[data-upgid]');
+    ubtns.forEach(btn => {
+      let id=btn.dataset.upgid;
+      let u=this.upgrades.find(x=>x.id===id);
+      if(u){let cost=this.upgCost(u);btn.disabled=!this.canAfford(u.costRes,cost);}
+    });
   },
 
   refreshMain() {
@@ -985,10 +1006,13 @@ const G = {
         <div class="gen-icon" style="background:${canBuy?'var(--accent)':'var(--border)'}">${g.icon}</div>
         <div class="gen-info"><div class="gen-name">${g.name}</div><div class="gen-stats">x${g.owned} | ${this.fmt(this.genProd(g)*this.prodBoostMult*this.ascensionMult)}/s</div></div>
         <span class="gen-cost ${canBuy?'text-green':'text-dim'}">${this.fmt(cost)}</span>
-        <button class="btn btn-sm ${canBuy?'btn-primary':'btn-primary'}" ${canBuy?'':'disabled'} onclick="G.buyGen('${g.id}',1)">Buy</button>
+        <button class="btn btn-sm ${canBuy?'btn-primary':'btn-primary'}" data-maingenid="${g.id}" ${canBuy?'':'disabled'}>Buy</button>
       </div>`;
     }
     document.getElementById('gen-list-main').innerHTML=html;
+    document.querySelectorAll('#gen-list-main .btn[data-maingenid]').forEach(btn=>{
+      btn.addEventListener('pointerdown', (e)=>{ e.preventDefault(); G.buyGen(btn.dataset.maingenid, 1); });
+    });
   },
 
   refreshGenerators() {
@@ -1003,11 +1027,15 @@ const G = {
         <div class="gen-info"><div class="gen-name">${g.name} <span class="text-dim text-xs">Tier ${g.tier}</span></div><div class="gen-stats">Owned: ${g.owned} | ${this.fmt(prod)}/s | Mult: ${g.mult.toFixed(1)}x</div></div>
         <div style="text-align:right">
           <div class="gen-cost ${canBuy?'text-green':'text-dim'}">${this.fmt(cost)}</div>
-          <button class="btn btn-sm ${canBuy?'btn-primary':'btn-primary'}" ${canBuy?'':'disabled'} onclick="G.buyGen('${g.id}',${this.buyMode})">Buy x${this.buyMode}</button>
+          <button class="btn btn-sm ${canBuy?'btn-primary':'btn-primary'}" data-genid="${g.id}" ${canBuy?'':'disabled'}>Buy x${this.buyMode}</button>
         </div>
       </div>`;
     }
     document.getElementById('gen-list-full').innerHTML=html;
+    // Attach click handlers after render (avoids innerHTML race)
+    document.querySelectorAll('#gen-list-full .btn[data-genid]').forEach(btn=>{
+      btn.addEventListener('pointerdown', (e)=>{ e.preventDefault(); G.buyGen(btn.dataset.genid, G.buyMode); G._forceRebuild=true; });
+    });
 
     // Upgrades
     html='';
@@ -1019,11 +1047,15 @@ const G = {
         <div class="gen-info"><div class="gen-name">${u.name} <span class="text-dim text-xs">Lv ${u.level}/${u.max}</span></div><div class="gen-stats">${u.desc}</div></div>
         <div style="text-align:right">
           <div class="gen-cost ${canBuy?'text-green':'text-dim'}">${this.fmt(cost)}</div>
-          <button class="btn btn-sm ${canBuy?'btn-green':'btn-primary'}" ${canBuy?'':'disabled'} onclick="G.buyUpgrade('${u.id}')">Buy</button>
+          <button class="btn btn-sm ${canBuy?'btn-green':'btn-primary'}" data-upgid="${u.id}" ${canBuy?'':'disabled'}>Buy</button>
         </div>
       </div>`;
     }
     document.getElementById('upgrade-list').innerHTML=html||'<div class="text-sm text-dim">All maxed!</div>';
+    // Attach click handlers after render
+    document.querySelectorAll('#upgrade-list .btn[data-upgid]').forEach(btn=>{
+      btn.addEventListener('pointerdown', (e)=>{ e.preventDefault(); G.buyUpgrade(btn.dataset.upgid); G._forceRebuild=true; });
+    });
   },
 
   refreshAutomation() {
